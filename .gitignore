@@ -1,0 +1,46 @@
+﻿# Ignore common build and tooling outputs
+backend/**/bin/
+backend/**/obj/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+
+# Environment files
+frontend/.env
+frontend/.env.*
+backend/.env
+backend/.env.*
+
+# Public repository exclusions for internal materials
+conversas-01/
+runtime-logs/
+referencias-visuais/
+0*-*.md
+1*-*.md
+2*-*.md
+3*-*.md
+4*-*.md
+5*-*.md
+6*-*.md
+7*-*.md
+8*-*.md
+9*-*.md
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+backend/.vs/
+*.suo
+backend/src/FinanceManager.Api/appsettings.json
+backend/src/FinanceManager.Api/appsettings.Development.json
+backend/tests/**/UnitTest1.cs
