@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard" },
   { label: "Contas", href: "/financial-accounts" },
   { label: "Categorias", href: "/transaction-categories" },
-  { label: "Transacoes" },
+  { label: "Transacoes", href: "/transactions" },
 ];
 
 function isActive(pathname: string, href: string) {

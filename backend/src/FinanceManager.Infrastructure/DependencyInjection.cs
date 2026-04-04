@@ -1,4 +1,4 @@
-using FinanceManager.Application.Common.Abstractions.Persistence;
+﻿using FinanceManager.Application.Common.Abstractions.Persistence;
 using FinanceManager.Application.Common.Abstractions.Security;
 using FinanceManager.Application.Common.Abstractions.Time;
 using FinanceManager.Infrastructure.Options;
@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ITransactionCategoryRepository, TransactionCategoryRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();

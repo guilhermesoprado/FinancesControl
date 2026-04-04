@@ -1,4 +1,4 @@
-using FinanceManager.Application.Common.Abstractions.Persistence;
+﻿using FinanceManager.Application.Common.Abstractions.Persistence;
 using FinanceManager.Domain.Entities;
 using FinanceManager.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +17,13 @@ public sealed class FinancialAccountRepository : IFinancialAccountRepository
     public Task AddAsync(FinancialAccount financialAccount, CancellationToken cancellationToken)
     {
         return _dbContext.FinancialAccounts.AddAsync(financialAccount, cancellationToken).AsTask();
+    }
+
+    public Task<FinancialAccount?> GetByUserIdAndIdAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)
+    {
+        return _dbContext.FinancialAccounts.FirstOrDefaultAsync(
+            x => x.UserId == userId && x.Id == financialAccountId,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<FinancialAccount>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)

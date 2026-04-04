@@ -1,4 +1,4 @@
-using FinanceManager.Domain.Enums;
+﻿using FinanceManager.Domain.Enums;
 
 namespace FinanceManager.Domain.Entities;
 
@@ -53,5 +53,21 @@ public sealed class FinancialAccount
             CreatedAtUtc = nowUtc,
             UpdatedAtUtc = nowUtc
         };
+    }
+
+    public void ApplyDelta(decimal delta, DateTime nowUtc)
+    {
+        if (!IsActive)
+        {
+            throw new InvalidOperationException("Nao e possivel movimentar uma conta financeira inativa.");
+        }
+
+        if (delta == 0)
+        {
+            throw new InvalidOperationException("A movimentacao da conta precisa alterar o saldo.");
+        }
+
+        CurrentBalanceSnapshot = (CurrentBalanceSnapshot ?? InitialBalance) + delta;
+        UpdatedAtUtc = nowUtc;
     }
 }

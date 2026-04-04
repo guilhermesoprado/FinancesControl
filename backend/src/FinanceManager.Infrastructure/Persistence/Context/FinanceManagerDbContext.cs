@@ -1,4 +1,4 @@
-using FinanceManager.Domain.Entities;
+﻿using FinanceManager.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceManager.Infrastructure.Persistence.Context;
@@ -12,6 +12,7 @@ public sealed class FinanceManagerDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<FinancialAccount> FinancialAccounts => Set<FinancialAccount>();
     public DbSet<TransactionCategory> TransactionCategories => Set<TransactionCategory>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

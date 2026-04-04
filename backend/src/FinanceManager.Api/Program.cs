@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using FinanceManager.Api.Middleware;
 using FinanceManager.Application.Authentication;
 using FinanceManager.Application.Authentication.Services;
@@ -6,6 +6,8 @@ using FinanceManager.Application.FinancialAccounts;
 using FinanceManager.Application.FinancialAccounts.Services;
 using FinanceManager.Application.TransactionCategories;
 using FinanceManager.Application.TransactionCategories.Services;
+using FinanceManager.Application.Transactions;
+using FinanceManager.Application.Transactions.Services;
 using FinanceManager.Infrastructure;
 using FinanceManager.Infrastructure.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -67,6 +69,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
 builder.Services.AddScoped<ITransactionCategoryService, TransactionCategoryService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("A configuracao JWT nao foi encontrada.");

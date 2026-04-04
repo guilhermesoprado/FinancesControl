@@ -1,4 +1,4 @@
-using FinanceManager.Application.Common.Abstractions.Persistence;
+﻿using FinanceManager.Application.Common.Abstractions.Persistence;
 using FinanceManager.Domain.Entities;
 using FinanceManager.Domain.Enums;
 using FinanceManager.Infrastructure.Persistence.Context;
@@ -31,6 +31,13 @@ public sealed class TransactionCategoryRepository : ITransactionCategoryReposito
                 && !x.IsSystem
                 && x.Type == type
                 && x.Name.ToUpper() == normalizedName,
+            cancellationToken);
+    }
+
+    public Task<TransactionCategory?> GetByUserIdAndIdAsync(Guid userId, Guid transactionCategoryId, CancellationToken cancellationToken)
+    {
+        return _dbContext.TransactionCategories.FirstOrDefaultAsync(
+            x => x.UserId == userId && x.Id == transactionCategoryId,
             cancellationToken);
     }
 

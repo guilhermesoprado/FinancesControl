@@ -1,0 +1,45 @@
+.main { padding: 32px; display: grid; gap: 24px; }
+.header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.eyebrow { color: #8ff8cf; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.78rem; margin-bottom: 10px; }
+.subtitle { margin-top: 12px; color: var(--color-text-muted); max-width: 760px; line-height: 1.6; }
+.headerActions, .fieldRow, .filterActions, .actionBar, .formActions { display: flex; gap: 12px; flex-wrap: wrap; }
+.headerActions { align-items: center; justify-content: flex-end; }
+.userBadge { min-width: 200px; padding: 14px 16px; border: 1px solid rgba(143,248,207,.14); background: rgba(7,18,15,.78); border-radius: 18px; }
+.userBadge span { display: block; color: var(--color-text-muted); font-size: .78rem; margin-bottom: 4px; }
+.summaryGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.summaryCard, .filtersCard, .listCard, .warningBlock, .stateBlock { border-radius: 24px; border: 1px solid rgba(143,248,207,.1); background: rgba(8,21,17,.84); box-shadow: 0 28px 60px rgba(0,0,0,.2); }
+.summaryCard { padding: 20px; display: grid; gap: 6px; }
+.summaryCard span, .summaryCard small, .listHeader p, .stateBlock p, .warningBlock p, .mutedText, .transactionDescription, .modalHeader p { color: var(--color-text-muted); }
+.summaryCard strong { font-size: 1.55rem; }
+.feedbackSuccess, .feedbackError, .warningBlock, .stateBlock { padding: 18px 20px; border-radius: 18px; }
+.feedbackSuccess { background: rgba(30,196,124,.16); border: 1px solid rgba(30,196,124,.22); color: #adffd9; }
+.feedbackError { background: rgba(214,77,77,.16); border: 1px solid rgba(214,77,77,.24); color: #ffd0d0; }
+.filtersCard, .listCard { padding: 24px; }
+.filtersForm { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)) auto; gap: 16px; align-items: end; }
+.field { display: grid; gap: 8px; }
+.field span { color: var(--color-text-muted); font-size: .86rem; }
+.field input, .field select, .field textarea { width: 100%; border-radius: 16px; border: 1px solid rgba(143,248,207,.12); background: rgba(6,16,13,.92); color: var(--color-text); padding: 13px 14px; }
+.field textarea { resize: vertical; }
+.primaryButton, .secondaryButton, .iconButton { border: 0; border-radius: 16px; min-height: 46px; padding: 0 18px; font-weight: 600; cursor: pointer; transition: transform 160ms ease, opacity 160ms ease, background 160ms ease; }
+.primaryButton { background: linear-gradient(135deg,#1de7a0 0%,#13b97d 100%); color: #08120f; }
+.secondaryButton, .iconButton { background: rgba(22,44,36,.88); color: var(--color-text); border: 1px solid rgba(143,248,207,.14); }
+.primaryButton:hover, .secondaryButton:hover, .iconButton:hover { transform: translateY(-1px); }
+.primaryButton:disabled, .secondaryButton:disabled, .iconButton:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.listHeader, .transactionTopRow, .modalHeader { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.listHeader { margin-bottom: 18px; }
+.skeletonList { display: grid; gap: 12px; }
+.skeletonRow { height: 84px; border-radius: 18px; background: linear-gradient(90deg,rgba(18,38,31,.8),rgba(28,60,49,.95),rgba(18,38,31,.8)); }
+.transactionList { display: grid; gap: 14px; }
+.transactionCard { border-radius: 20px; padding: 20px; background: rgba(6,16,13,.9); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 16px; }
+.transactionTopRow p, .mutedText, .transactionDescription, .stateBlock p, .warningBlock p, .modalHeader p { line-height: 1.55; }
+.transactionMetaRow { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.transactionMetaRow span { color: var(--color-text-muted); display: block; margin-bottom: 6px; }
+.typeBadge { padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(143,248,207,.14); font-size: .84rem; font-weight: 700; }
+.typeBadgeincome { color: #9af5cf; background: rgba(30,196,124,.14); }
+.typeBadgeexpense { color: #ffd4c0; background: rgba(255,115,0,.14); }
+.typeBadgetransfer { color: #c9d8ff; background: rgba(96,120,255,.14); }
+.modalOverlay { position: fixed; inset: 0; background: rgba(1,6,5,.72); backdrop-filter: blur(10px); display: grid; place-items: center; padding: 20px; z-index: 50; }
+.modalCard { width: min(760px,100%); border-radius: 28px; border: 1px solid rgba(143,248,207,.12); background: linear-gradient(180deg,rgba(10,23,19,.98),rgba(7,17,14,.98)); padding: 24px; display: grid; gap: 20px; box-shadow: 0 40px 120px rgba(0,0,0,.4); }
+.form { display: grid; gap: 16px; }
+@media (max-width: 1100px) { .summaryGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .filtersForm { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 720px) { .main { padding: 20px; } .header, .transactionTopRow, .modalHeader { flex-direction: column; } .summaryGrid, .filtersForm, .transactionMetaRow { grid-template-columns: 1fr; } }
