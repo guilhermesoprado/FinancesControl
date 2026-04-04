@@ -44,3 +44,6 @@ backend/.vs/
 backend/src/FinanceManager.Api/appsettings.json
 backend/src/FinanceManager.Api/appsettings.Development.json
 backend/tests/**/UnitTest1.cs
+frontend/.gitignore
+frontend/README.md
+frontend/public/
