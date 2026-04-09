@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -39,7 +40,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PUBLIC_PATHS = new Set(["/login", "/register"]);
-const AUTHENTICATED_HOME_PATH = "/financial-accounts";
+const AUTHENTICATED_HOME_PATH = "/dashboard";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
@@ -96,31 +97,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
-  async function handleLogin(input: LoginInput) {
+  const handleLogin = useCallback(async (input: LoginInput) => {
     const nextSession = await loginRequest(input);
     persistAuthSession(nextSession);
     setSession(nextSession);
     setStatus("authenticated");
     router.replace(AUTHENTICATED_HOME_PATH);
     router.refresh();
-  }
+  }, [router]);
 
-  async function handleRegister(input: RegisterInput) {
+  const handleRegister = useCallback(async (input: RegisterInput) => {
     const nextSession = await registerRequest(input);
     persistAuthSession(nextSession);
     setSession(nextSession);
     setStatus("authenticated");
     router.replace(AUTHENTICATED_HOME_PATH);
     router.refresh();
-  }
+  }, [router]);
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     clearAuthSession();
     setSession(null);
     setStatus("unauthenticated");
     router.replace("/login");
     router.refresh();
-  }
+  }, [router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register: handleRegister,
       logout: handleLogout,
     }),
-    [session, status],
+    [handleLogin, handleLogout, handleRegister, session, status],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -146,3 +147,4 @@ export function useAuth() {
 
   return context;
 }
+

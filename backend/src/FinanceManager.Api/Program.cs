@@ -4,6 +4,8 @@ using FinanceManager.Application.Authentication;
 using FinanceManager.Application.Authentication.Services;
 using FinanceManager.Application.FinancialAccounts;
 using FinanceManager.Application.FinancialAccounts.Services;
+using FinanceManager.Application.FinancialOverview;
+using FinanceManager.Application.FinancialOverview.Services;
 using FinanceManager.Application.TransactionCategories;
 using FinanceManager.Application.TransactionCategories.Services;
 using FinanceManager.Application.Transactions;
@@ -68,6 +70,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
+builder.Services.AddScoped<IFinancialOverviewService, FinancialOverviewService>();
 builder.Services.AddScoped<ITransactionCategoryService, TransactionCategoryService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 
