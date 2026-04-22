@@ -23,6 +23,8 @@ Read the public documentation in this order:
 12. `spec/Financial/transaction-categories-spec.md`
 13. `spec/Financial/transactions-core-spec.md`
 14. `spec/Financial/financial-overview-spec.md`
+15. `spec/Financial/credit-cards-spec.md`
+16. `spec/Financial/scheduled-entries-spec.md`
 
 The roadmap specs are the source of truth for:
 
@@ -43,18 +45,29 @@ The project currently includes:
 - transaction categories module with create and list flows
 - transactions core with income, expense, transfer, period listing, and account/category integration
 - financial overview dashboard with consolidated reading of balances and recent movements
+- credit cards with create and list flows
+- invoices with automatic creation by cycle, manual opening, advanced closing, and detailed reading
+- credit card purchases with installment distribution across future invoice cycles
+- partial and total invoice payment with editable real amount
+- controlled invoice adjustments with credit, discount, fees, interest, penalty, and manual correction
 - authenticated application shell shared between protected pages
-- automated backend coverage for transactions and financial overview flows
-
+- automated backend coverage for operational finance and advanced credit flows
 ## Current Project State
 
 The project is currently here:
 
 - `Fase 0` complete for current scope
 - `Fase 2` complete for current scope
-- `Financial Accounts`, `Transaction Categories`, `Transactions Core` and `Financial Overview` complete for current scope
-- next active phase: `Fase 3 - Credit and Invoice`
-
+- `Fase 3` complete for current scope
+- `Fase 4` complete for current scope
+- credit and invoice advanced core implemented and validated for current scope
+- `Scheduled Entries / Planned Transactions` implemented and validated as the first module of `Fase 4`
+- planning now reads recurring commitments by visible occurrences per competence, preserving treated history and future competences in the same recurrence
+- backend now applies pending EF Core migrations on API startup to keep planning support structures aligned with the running database
+- simple financial calendar now uses the same occurrence-based operational model, preserving navigation by week/month without losing the visible planning window
+- basic operational forecasting now highlights projected balance, expected income, expected expenses, monthly concentration, and treatment rhythm on top of the stabilized occurrence and calendar base
+- monthly decision-reading now highlights critical months, load distribution, and operational priorities without opening complex predictive models
+- `Fase 4 - Financial Planning` is now closed as complete for the current scope
 ## Tech Stack
 
 - Frontend: Next.js 16, React 19, TypeScript
@@ -119,7 +132,8 @@ Frontend default URL:
 - `/financial-accounts`
 - `/transaction-categories`
 - `/transactions`
-
+- `/credit-cards`
+- `/invoices`
 ## Validation Status
 
 Recent local validation includes:
@@ -127,8 +141,7 @@ Recent local validation includes:
 - `dotnet test FinanceManager.sln`
 - `npm run lint`
 - `npm run build`
-- manual end-to-end verification of accounts, categories, transactions and dashboard
-
+- manual end-to-end verification of accounts, categories, transactions, dashboard, cards, invoices, invoice payments, and invoice adjustments
 ## Notes
 
 - Development uses local PostgreSQL through Docker.
@@ -139,3 +152,5 @@ Recent local validation includes:
 
 This project currently has no license file attached.
 All rights reserved unless a license is added later.
+
+

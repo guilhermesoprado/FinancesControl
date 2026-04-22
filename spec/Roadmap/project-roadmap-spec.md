@@ -116,15 +116,16 @@ Modulos fechados dentro da Fase 2:
 
 Status:
 
-- formalizada
-- preparada para abertura
-- proxima fase ativa do projeto
+- concluida para o escopo atual
+- validada no nucleo avancado de credito
 
 ### 6.4 Fase 4
 
 Status:
 
-- nao iniciada
+- formalizada
+- aberta oficialmente
+- proxima fase ativa do projeto
 
 ### 6.5 Fase 5
 
@@ -164,7 +165,7 @@ Papel:
 
 Papel:
 
-- abrir o dominio de cartao e fatura com regra propria
+- fechar o arco operacional de credito, fatura, parcelamento, ajustes e encargos simples
 
 ### 7.4 Fase 4
 
@@ -254,9 +255,10 @@ Quando chegar a `Fase 6`, o orquestrador deve operar com a regra:
 
 Dado o estado atual do projeto, a proxima acao correta e:
 
-1. abrir oficialmente a `Fase 3`
-2. definir o primeiro modulo operacional de cartao e fatura
-3. manter o encerramento da `Fase 2` como referencia congelada do nucleo financeiro basico
+1. manter a `Fase 3` fechada como base estavel do dominio de credito
+2. abrir a execucao da `Fase 4`
+3. iniciar pelo modulo `Scheduled Entries / Planned Transactions`
+4. preservar `Fase 2` e `Fase 3` como referencias congeladas dos arcos ja validados
 
 ## 11. Criterio de Encerramento do Projeto
 
@@ -274,8 +276,8 @@ A leitura correta do projeto e:
 
 - `Fase 0` constroi a base
 - `Fase 2` cria a operacao financeira e sua primeira camada de leitura
-- `Fase 3` abre credito e fatura
-- `Fase 4` abre planejamento financeiro
+- `Fase 3` abre, consolida e valida o dominio de credito e fatura
+- `Fase 4` abre planejamento financeiro a partir da base operacional ja estabilizada
 - `Fase 5` reforca controle e governanca
 - `Fase 6` melhora design e experiencia sem quebrar o que ja funciona
 - `Fase 7` fecha o produto com inteligencia, leitura gerencial e maturidade final

@@ -1,18 +1,26 @@
-﻿using System.Text;
+using System.Text;
 using FinanceManager.Api.Middleware;
 using FinanceManager.Application.Authentication;
 using FinanceManager.Application.Authentication.Services;
+using FinanceManager.Application.CreditCards;
+using FinanceManager.Application.CreditCards.Services;
 using FinanceManager.Application.FinancialAccounts;
 using FinanceManager.Application.FinancialAccounts.Services;
 using FinanceManager.Application.FinancialOverview;
 using FinanceManager.Application.FinancialOverview.Services;
+using FinanceManager.Application.Invoices;
+using FinanceManager.Application.Invoices.Services;
+using FinanceManager.Application.ScheduledEntries;
+using FinanceManager.Application.ScheduledEntries.Services;
 using FinanceManager.Application.TransactionCategories;
 using FinanceManager.Application.TransactionCategories.Services;
 using FinanceManager.Application.Transactions;
 using FinanceManager.Application.Transactions.Services;
 using FinanceManager.Infrastructure;
 using FinanceManager.Infrastructure.Options;
+using FinanceManager.Infrastructure.Persistence.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -69,8 +77,11 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICreditCardService, CreditCardService>();
 builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
 builder.Services.AddScoped<IFinancialOverviewService, FinancialOverviewService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IScheduledEntryService, ScheduledEntryService>();
 builder.Services.AddScoped<ITransactionCategoryService, TransactionCategoryService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 
@@ -104,6 +115,12 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<FinanceManagerDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.UseMiddleware<ApiExceptionMiddleware>();
 

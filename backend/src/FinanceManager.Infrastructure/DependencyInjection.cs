@@ -38,6 +38,11 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
+        services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+        services.AddScoped<ICreditCardExpenseRepository, CreditCardExpenseRepository>();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<IScheduledEntryRepository, ScheduledEntryRepository>();
+        services.AddScoped<IScheduledEntryOccurrenceRepository, ScheduledEntryOccurrenceRepository>();
         services.AddScoped<ITransactionCategoryRepository, TransactionCategoryRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();

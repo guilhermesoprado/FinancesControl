@@ -1,0 +1,143 @@
+.main { padding: 32px; display: grid; gap: 24px; }
+.header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.eyebrow { color: #8ff8cf; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.78rem; margin-bottom: 10px; }
+.subtitle { margin-top: 12px; color: var(--color-text-muted); max-width: 760px; line-height: 1.6; }
+.headerActions, .fieldRow, .filterActions, .formActions, .actionBar, .statusStrip, .horizonBuckets { display: flex; gap: 12px; flex-wrap: wrap; }
+.headerActions { align-items: center; justify-content: flex-end; }
+.userBadge { min-width: 200px; padding: 14px 16px; border: 1px solid rgba(143,248,207,.14); background: rgba(7,18,15,.78); border-radius: 18px; }
+.userBadge span { display: block; color: var(--color-text-muted); font-size: .78rem; margin-bottom: 4px; }
+.summaryGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.forecastGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.horizonGrid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; }
+.summaryCard, .filtersCard, .listCard, .warningBlock, .stateBlock, .statusPill, .readonlyCard, .horizonCard, .monthCard, .calendarCard, .forecastCard, .forecastBoard, .forecastMonthCard { border-radius: 24px; border: 1px solid rgba(143,248,207,.1); background: rgba(8,21,17,.84); box-shadow: 0 28px 60px rgba(0,0,0,.2); }
+.summaryCard { padding: 20px; display: grid; gap: 6px; }
+.summaryCard span, .summaryCard small, .listHeader p, .stateBlock p, .warningBlock p, .mutedText, .modalHeader p, .entryHistory small, .readonlyCard small, .horizonEyebrow, .horizonBucket small, .monthCardHeader p, .monthCardItem span, .monthCardItem small, .calendarEyebrow, .calendarDayHeader span, .calendarEntry span, .calendarEntry small, .forecastText, .forecastMonthHeader p { color: var(--color-text-muted); }
+.summaryCard strong { font-size: 1.55rem; }
+.statusStrip { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); }
+.statusPill { padding: 16px 18px; display: grid; gap: 6px; }
+.statusPill span { color: var(--color-text-muted); font-size: .84rem; }
+.forecastCard { padding: 22px; display: grid; gap: 16px; background: linear-gradient(180deg, rgba(10,23,19,.94), rgba(7,17,14,.9)); }
+.forecastCardHeader, .forecastSplit, .forecastMonthHeader { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.forecastCardHeader strong { font-size: 1.8rem; line-height: 1; }
+.forecastText { line-height: 1.6; }
+.forecastSplit { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.forecastMetric { border-radius: 16px; padding: 14px 16px; background: rgba(6,16,13,.86); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 4px; }
+.forecastMetric span { color: var(--color-text-muted); font-size: .82rem; }
+.forecastPositive { color: #9af5cf; }
+.forecastNegative { color: #ffd0d0; }
+.forecastBoard { padding: 24px; display: grid; gap: 18px; }
+.forecastMonthGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.forecastMonthCard { padding: 18px; display: grid; gap: 14px; background: linear-gradient(180deg, rgba(10,23,19,.94), rgba(7,17,14,.9)); }
+.forecastMonthMetrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.monthDecisionGrid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+.monthDecisionCard { border-radius: 24px; border: 1px solid rgba(143,248,207,.1); background: rgba(8,21,17,.84); box-shadow: 0 28px 60px rgba(0,0,0,.2); padding: 24px; display: grid; gap: 18px; }
+.monthDecisionList, .priorityList { display: grid; gap: 12px; }
+.monthDecisionItem { border-radius: 18px; padding: 16px; border: 1px solid rgba(143,248,207,.08); background: rgba(6,16,13,.86); display: grid; gap: 12px; }
+.monthDecisionItemAlert { border-color: rgba(214,77,77,.28); background: rgba(48,15,15,.86); }
+.monthDecisionItemWarm { border-color: rgba(255,176,32,.24); background: rgba(47,32,10,.86); }
+.monthDecisionHeader { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.monthDecisionHeader p, .priorityItem p, .monthDecisionMetrics span { color: var(--color-text-muted); line-height: 1.5; }
+.monthDecisionMetrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.priorityItem { border-radius: 18px; padding: 16px; border: 1px solid rgba(143,248,207,.08); background: rgba(6,16,13,.86); display: grid; gap: 6px; }
+.horizonCard { padding: 22px; display: grid; gap: 18px; }
+.horizonHeader, .monthCardHeader, .focusItem { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.horizonHeader strong { font-size: 2rem; line-height: 1; }
+.horizonEyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: .72rem; }
+.horizonBuckets { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.horizonBucket { border-radius: 18px; padding: 16px; background: rgba(6,16,13,.86); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 6px; }
+.horizonBucket span { color: var(--color-text-muted); font-size: .84rem; }
+.horizonBucket strong { font-size: 1.35rem; }
+.focusList, .monthBoard, .monthCardList { display: grid; gap: 12px; }
+.focusItem { border-radius: 18px; padding: 14px 16px; background: rgba(6,16,13,.86); border: 1px solid rgba(143,248,207,.08); }
+.focusItem h3, .monthCardHeader h3 { margin-bottom: 4px; }
+.focusItem p { color: var(--color-text-muted); line-height: 1.45; }
+.focusItemAlert { border-color: rgba(214,77,77,.28); background: rgba(48,15,15,.86); }
+.focusItemToday { border-color: rgba(255,176,32,.28); background: rgba(47,32,10,.86); }
+.focusItemSoon { border-color: rgba(64,150,255,.24); background: rgba(12,24,43,.86); }
+.focusEmpty { border-radius: 18px; padding: 16px; background: rgba(6,16,13,.86); border: 1px dashed rgba(143,248,207,.14); color: var(--color-text-muted); }
+.monthCard { padding: 18px; display: grid; gap: 14px; background: linear-gradient(180deg, rgba(10,23,19,.94), rgba(7,17,14,.9)); }
+.monthCardList { grid-template-columns: 1fr; }
+.monthCardItem { border-top: 1px solid rgba(143,248,207,.08); padding-top: 10px; display: grid; gap: 3px; }
+.monthCardItem:first-child { border-top: 0; padding-top: 0; }
+.calendarCard { padding: 24px; display: grid; gap: 16px; }
+.calendarHeader, .calendarToolbar, .calendarNav, .calendarModeSwitch, .calendarDayHeader { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.calendarEyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: .72rem; }
+.calendarModeActive { border: 0; border-radius: 16px; min-height: 46px; padding: 0 18px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg,#1de7a0 0%,#13b97d 100%); color: #08120f; }
+.calendarWeekdayRow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.calendarWeekdayRow span { padding: 0 8px; color: var(--color-text-muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; }
+.calendarGrid { display: grid; gap: 10px; }
+.calendarGridMonth { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendarGridWeek { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendarDay { min-height: 170px; border-radius: 20px; padding: 14px; background: rgba(6,16,13,.9); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 12px; align-content: start; text-align: left; cursor: pointer; }
+.calendarDayToday { border-color: rgba(30,196,124,.24); box-shadow: inset 0 0 0 1px rgba(30,196,124,.18); }
+.calendarDaySelected { border-color: rgba(143,248,207,.34); box-shadow: inset 0 0 0 1px rgba(143,248,207,.18); transform: translateY(-1px); }
+.calendarDayMuted { opacity: .55; }
+.calendarDayHeader strong { font-size: 1rem; }
+.calendarDayList { display: grid; gap: 8px; }
+.calendarEntry { border-radius: 14px; padding: 10px 12px; background: rgba(10,23,19,.94); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 3px; }
+.calendarEntryMeta { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.calendarEntryStatus { display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 999px; font-size: .68rem; font-weight: 700; letter-spacing: .02em; border: 1px solid transparent; }
+.calendarEntryStatusscheduled { color: #9af5cf; background: rgba(30,196,124,.14); border-color: rgba(30,196,124,.2); }
+.calendarEntryStatuscompleted { color: #d6f3ff; background: rgba(64,150,255,.14); border-color: rgba(64,150,255,.2); }
+.calendarEntryStatusskipped { color: #ffe3ad; background: rgba(255,176,32,.14); border-color: rgba(255,176,32,.2); }
+.calendarEntryStatuscancelled { color: #ffd0d0; background: rgba(214,77,77,.16); border-color: rgba(214,77,77,.24); }
+.calendarOverflow { color: var(--color-text-muted); font-size: .84rem; padding-top: 2px; }
+.calendarDrawer { border-radius: 24px; border: 1px solid rgba(143,248,207,.1); background: linear-gradient(180deg, rgba(10,23,19,.96), rgba(7,17,14,.92)); padding: 20px; display: grid; gap: 16px; }
+.calendarDrawerHeader, .calendarDrawerSummary, .calendarDrawerItemTop, .calendarDrawerActions { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.calendarDrawerHeader p, .calendarDrawerItemTop p, .calendarDrawerItemMeta span { color: var(--color-text-muted); line-height: 1.5; }
+.calendarDrawerSummary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calendarDrawerMetric { border-radius: 16px; padding: 14px 16px; background: rgba(6,16,13,.86); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 4px; }
+.calendarDrawerMetric span { color: var(--color-text-muted); font-size: .82rem; }
+.calendarDrawerList { display: grid; gap: 12px; max-height: 520px; overflow: auto; padding-right: 4px; }
+.calendarDrawerItem { border-radius: 18px; padding: 16px; background: rgba(6,16,13,.86); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 12px; }
+.calendarDrawerItemMeta { display: flex; gap: 10px; flex-wrap: wrap; }
+.calendarDrawerEmpty { border-radius: 18px; padding: 18px; background: rgba(6,16,13,.86); border: 1px dashed rgba(143,248,207,.14); color: var(--color-text-muted); }
+.feedbackSuccess, .feedbackError, .warningBlock, .stateBlock { padding: 18px 20px; border-radius: 18px; }
+.feedbackSuccess { background: rgba(30,196,124,.16); border: 1px solid rgba(30,196,124,.22); color: #adffd9; }
+.feedbackError { background: rgba(214,77,77,.16); border: 1px solid rgba(214,77,77,.24); color: #ffd0d0; }
+.filtersCard, .listCard { padding: 24px; }
+.filtersForm { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) auto; gap: 16px; align-items: end; }
+.field { display: grid; gap: 8px; }
+.field span { color: var(--color-text-muted); font-size: .86rem; }
+.field input, .field select, .field textarea { width: 100%; border-radius: 16px; border: 1px solid rgba(143,248,207,.12); background: rgba(6,16,13,.92); color: var(--color-text); padding: 13px 14px; }
+.field textarea { resize: vertical; }
+.primaryButton, .secondaryButton, .iconButton { border: 0; border-radius: 16px; min-height: 46px; padding: 0 18px; font-weight: 600; cursor: pointer; transition: transform 160ms ease, opacity 160ms ease, background 160ms ease; }
+.primaryButton { background: linear-gradient(135deg,#1de7a0 0%,#13b97d 100%); color: #08120f; }
+.secondaryButton, .iconButton { background: rgba(22,44,36,.88); color: var(--color-text); border: 1px solid rgba(143,248,207,.14); }
+.primaryButton:hover, .secondaryButton:hover, .iconButton:hover { transform: translateY(-1px); }
+.primaryButton:disabled, .secondaryButton:disabled, .iconButton:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.listHeader, .entryTopRow, .entryFooter, .modalHeader { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.listHeader { margin-bottom: 18px; }
+.skeletonList { display: grid; gap: 12px; }
+.skeletonRow { height: 92px; border-radius: 18px; background: linear-gradient(90deg,rgba(18,38,31,.8),rgba(28,60,49,.95),rgba(18,38,31,.8)); }
+.entryList { display: grid; gap: 14px; }
+.entryCard { border-radius: 20px; padding: 20px; background: rgba(6,16,13,.9); border: 1px solid rgba(143,248,207,.08); display: grid; gap: 16px; }
+.entryTopRow p, .mutedText, .stateBlock p, .warningBlock p, .modalHeader p { line-height: 1.55; }
+.entryMetaRow { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.entryMetaRow span, .entryHistory span { color: var(--color-text-muted); display: block; margin-bottom: 6px; }
+.entryHistory { display: grid; gap: 4px; }
+.statusBadge { padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(143,248,207,.14); font-size: .84rem; font-weight: 700; }
+.statusBadgescheduled { color: #9af5cf; background: rgba(30,196,124,.14); }
+.statusBadgecompleted { color: #d6f3ff; background: rgba(64,150,255,.14); }
+.statusBadgeskipped { color: #ffe3ad; background: rgba(255,176,32,.14); }
+.statusBadgecancelled { color: #ffd0d0; background: rgba(214,77,77,.16); }
+.modalOverlay { position: fixed; inset: 0; background: rgba(1,6,5,.72); backdrop-filter: blur(10px); display: grid; place-items: center; padding: 20px; z-index: 50; }
+.modalCard { width: min(820px,100%); border-radius: 28px; border: 1px solid rgba(143,248,207,.12); background: linear-gradient(180deg,rgba(10,23,19,.98),rgba(7,17,14,.98)); padding: 24px; display: grid; gap: 20px; box-shadow: 0 40px 120px rgba(0,0,0,.4); }
+.form { display: grid; gap: 16px; }
+.readonlyCard { padding: 14px 16px; display: grid; gap: 6px; min-height: 100%; align-content: start; }
+@media (max-width: 1100px) {
+  .summaryGrid, .statusStrip, .forecastGrid, .horizonGrid, .forecastMonthGrid, .monthDecisionGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .filtersForm, .entryMetaRow { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .horizonBuckets { grid-template-columns: 1fr; }
+  .forecastSplit, .forecastMonthMetrics, .monthDecisionMetrics { grid-template-columns: 1fr; }
+  .calendarGridMonth { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .calendarDrawerSummary { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .main { padding: 20px; }
+  .header, .entryTopRow, .entryFooter, .modalHeader, .calendarHeader, .calendarToolbar, .calendarDrawerHeader { flex-direction: column; }
+  .summaryGrid, .statusStrip, .forecastGrid, .forecastMonthGrid, .monthDecisionGrid, .filtersForm, .entryMetaRow, .horizonGrid, .forecastSplit, .forecastMonthMetrics, .monthDecisionMetrics { grid-template-columns: 1fr; }
+  .calendarWeekdayRow { display: none; }
+  .calendarGridMonth, .calendarGridWeek { grid-template-columns: 1fr; }
+  .calendarDay { min-height: auto; }
+}

@@ -343,16 +343,96 @@ Observacoes:
 
 ## 9. Fases Posteriores
 
-As fases abaixo continuam:
+### 9.1 Fase 3 - Cartoes, faturas e pagamentos
+
+Status oficial:
+
+- `concluido`
+
+Justificativa:
+
+- `Credit Cards` foi implementado e validado para criacao e listagem
+- `Invoices` foi implementado e validado com abertura, fechamento e leitura operacional
+- compras no cartao com parcelamento por ciclos futuros foram implementadas
+- pagamentos parciais e totais de fatura foram implementados
+- ajustes controlados de fatura com encargos simples foram implementados
+- a base de credito e fatura ficou estavel para servir de apoio ao inicio do planejamento
+
+Evidencias consolidadas:
+
+- entidade `CreditCard`, repositorio, service, endpoints e migration do modulo
+- entidade `Invoice`, repositorio, service, endpoints e migrations do modulo
+- entidade `CreditCardExpense` com distribuicao por parcelas futuras
+- tela `Credit Cards` integrada ao backend real
+- tela `Invoices` integrada ao backend real
+- testes backend aprovados para o nucleo avancado de credito
+- `README.md` consolidado com a `Fase 3` como concluida no escopo atual
+
+Observacoes:
+
+- a fase fica fechada para o escopo atual
+- novas expansoes de credito nao sao a prioridade antes da consolidacao inicial da `Fase 4`
+
+### 9.2 Fase 4 - Planejamento financeiro
+
+Status oficial:
+
+- `implementado`
+
+Justificativa:
+
+- a fase deixou de estar apenas documentada e passou a ter implementacao real em andamento
+- o primeiro modulo oficial da fase, `Scheduled Entries / Planned Transactions`, foi implementado e validado
+- a base de planejamento agora existe com recorrencia controlada simples, leitura do futuro imediato e acoes operacionais
+
+### 9.2.1 Scheduled Entries / Planned Transactions
+
+Backend:
+
+- `validado`
+
+Frontend:
+
+- `validado`
+
+Evidencias backend:
+
+- entidade `ScheduledEntry`
+- enums `ScheduledEntryPlanningMode`, `ScheduledEntryRecurrenceFrequency` e `ScheduledEntryStatus`
+- contrato `IScheduledEntryRepository`
+- service `IScheduledEntryService` e `ScheduledEntryService`
+- endpoints `POST /api/v1/scheduled-entries`, `GET /api/v1/scheduled-entries`, `PUT /api/v1/scheduled-entries/{id}`, `POST /api/v1/scheduled-entries/{id}/complete`, `POST /api/v1/scheduled-entries/{id}/skip` e `POST /api/v1/scheduled-entries/{id}/cancel`
+- migration `AddScheduledEntries` criada e aplicada no PostgreSQL local
+- tabela `scheduled_entries` confirmada no banco do container
+- testes de dominio, application, infrastructure e API aprovados para o modulo
+
+Evidencias frontend:
+
+- tipos e service frontend do modulo criados
+- tela `Scheduled Entries` implementada com loading, vazio, erro, filtros, resumo e lista operacional
+- fluxo `Novo previsto` integrado ao backend real
+- leitura de horizonte futuro e calendario simples por semana e mes implementados
+- drawer operacional por dia com acoes de completar, ignorar, cancelar e editar
+- edicao de previsto existente conectada ao backend real
+- rota autenticada `/scheduled-entries` criada e protegida
+- `npm run lint` e `npm run build` aprovados apos a implementacao
+
+Observacoes:
+
+- o modulo deve ser tratado como a primeira abertura validada da `Fase 4`
+- o proximo passo da fase deixa de ser abrir `Scheduled Entries` e passa a ser consolidar recorrencia controlada, calendario financeiro simples e previsao operacional basica
+
+### 9.3 Fase 5 - Dashboard e consolidacao frontend
+
+Status oficial:
 
 - `documentado`
 
-Sem implementacao oficial iniciada:
+### 9.4 Fase 6 - Refino operacional, QA e preparacao para expansao
 
-- Fase 3 - Cartoes, faturas e pagamentos
-- Fase 4 - Parcelamento, recorrencia e previsao
-- Fase 5 - Dashboard e consolidacao frontend
-- Fase 6 - Refino operacional, QA e preparacao para expansao
+Status oficial:
+
+- `documentado`
 
 ## 10. Mapa Resumido do Que Ja Foi Feito
 
@@ -373,21 +453,32 @@ Sem implementacao oficial iniciada:
 - `Transaction Categories` backend e frontend validados
 - `Transactions Core` backend e frontend validados
 - shell autenticada compartilhada estabilizada e validada
+- `Fase 3` concluida no escopo atual com `Credit Cards`, `Invoices`, compras parceladas, pagamentos e ajustes
 
-### 10.2 Ja estruturado, mas nao funcionalmente entregue
+### 10.2 Ja implementado e validado alem da Fase 2
+
+- `Scheduled Entries / Planned Transactions` com backend real, migration aplicada e frontend integrado
+- recorrencia controlada simples com modos `unico` e `recorrente`
+- leitura operacional do futuro imediato com resumo, horizonte mensal e calendario simples
+- acoes de completar, ignorar, cancelar e editar previstos existentes
+
+### 10.3 Ja estruturado, mas nao funcionalmente entregue
 
 - arquitetura inicial do frontend
 - diretorios planejados do frontend
 - fases posteriores do roadmap
 
-### 10.3 Ainda nao implementado
+### 10.4 Ainda nao implementado
 
-- Fase 3 em diante
+- Fase 5 em diante
+- transformacao assistida de previsto em transacao real com confirmacao explicita do usuario
+- previsao operacional mais avancada alem do primeiro recorte da `Fase 4`
 
-### 10.4 Observacao operacional imediata
+### 10.5 Observacao operacional imediata
 
 - o primeiro backup remoto publico ja foi publicado no GitHub
-- a prioridade operacional agora e consolidar o fechamento formal da Fase 2 e preparar a entrada na Fase 3 sem antecipar escopo
+- a prioridade operacional agora e consolidar o fechamento documental da `Fase 3`
+- a prioridade funcional da fase ativa passa a ser consolidar a `Fase 4` ja iniciada com `Scheduled Entries`
 
 
 ## 11. Agente de Acompanhamento de Progresso

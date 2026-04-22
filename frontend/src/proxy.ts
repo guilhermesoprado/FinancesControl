@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/features/auth/auth-constants";
 
 const PUBLIC_PATHS = new Set(["/login", "/register"]);
-const AUTHENTICATED_PATHS = ["/financial-accounts", "/transaction-categories", "/transactions"];
+const AUTHENTICATED_PATHS = ["/financial-accounts", "/transaction-categories", "/transactions", "/credit-cards", "/invoices", "/scheduled-entries"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -27,5 +27,15 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/register", "/financial-accounts/:path*", "/transaction-categories/:path*", "/transactions/:path*"],
+  matcher: [
+    "/",
+    "/login",
+    "/register",
+    "/financial-accounts/:path*",
+    "/transaction-categories/:path*",
+    "/transactions/:path*",
+    "/credit-cards/:path*",
+    "/invoices/:path*",
+    "/scheduled-entries/:path*",
+  ],
 };
