@@ -53,8 +53,22 @@ public sealed class FinancialOverviewController : ControllerBase
             overview.IncomeTotal,
             overview.ExpenseTotal,
             overview.TransferTotal,
+            MapPeriodComparison(overview.PeriodComparison),
             overview.Accounts.Select(MapAccount).ToList(),
-            overview.RecentTransactions.Select(MapTransaction).ToList());
+            overview.RecentTransactions.Select(MapTransaction).ToList(),
+            overview.AccountSummaries.Select(MapAccountSummary).ToList(),
+            overview.CategorySummaries.Select(MapCategorySummary).ToList());
+    }
+
+    private static FinancialOverviewPeriodComparisonResponse MapPeriodComparison(FinancialOverviewPeriodComparisonDto comparison)
+    {
+        return new FinancialOverviewPeriodComparisonResponse(
+            comparison.PreviousPeriodFrom.ToString("yyyy-MM-dd"),
+            comparison.PreviousPeriodTo.ToString("yyyy-MM-dd"),
+            comparison.PreviousIncomeTotal,
+            comparison.PreviousExpenseTotal,
+            comparison.PreviousTransferTotal,
+            comparison.PreviousNetResult);
     }
 
     private static FinancialOverviewAccountResponse MapAccount(FinancialOverviewAccountDto account)
@@ -80,6 +94,26 @@ public sealed class FinancialOverviewController : ControllerBase
             transaction.FinancialAccountId,
             transaction.SourceFinancialAccountId,
             transaction.DestinationFinancialAccountId);
+    }
+
+    private static FinancialOverviewAccountPeriodSummaryResponse MapAccountSummary(FinancialOverviewAccountPeriodSummaryDto summary)
+    {
+        return new FinancialOverviewAccountPeriodSummaryResponse(
+            summary.AccountId,
+            summary.AccountName,
+            summary.IncomeTotal,
+            summary.ExpenseTotal,
+            summary.NetResult);
+    }
+
+    private static FinancialOverviewCategoryPeriodSummaryResponse MapCategorySummary(FinancialOverviewCategoryPeriodSummaryDto summary)
+    {
+        return new FinancialOverviewCategoryPeriodSummaryResponse(
+            summary.CategoryId,
+            summary.CategoryName,
+            MapTransactionType(summary.Type),
+            summary.TotalAmount,
+            summary.TransactionsCount);
     }
 
     private static string MapAccountType(FinancialAccountType type)

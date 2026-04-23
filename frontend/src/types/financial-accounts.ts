@@ -22,3 +22,10 @@ export interface CreateFinancialAccountInput {
   institutionName?: string;
   description?: string;
 }
+
+export interface UpdateFinancialAccountInput {
+  name: string;
+  type: FinancialAccountType;
+  institutionName?: string;
+  description?: string;
+}

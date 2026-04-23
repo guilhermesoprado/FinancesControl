@@ -1,0 +1,282 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  color: var(--color-text);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  color: #72d8af;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  max-width: 760px;
+  color: var(--color-text-muted);
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summaryCard,
+.panel,
+.logsSection,
+.logCard {
+  border: 1px solid var(--color-border-subtle);
+  background: linear-gradient(180deg, rgba(16, 34, 28, 0.95) 0%, rgba(10, 24, 20, 0.98) 100%);
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+}
+
+.summaryCard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(18, 36, 30, 0.9) 0%, rgba(12, 26, 22, 0.96) 100%);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+}
+
+.summaryLeadCard {
+  border-color: rgba(37, 250, 175, 0.2);
+  background: linear-gradient(180deg, rgba(22, 54, 43, 0.96) 0%, rgba(13, 33, 26, 0.98) 100%);
+}
+
+.summaryCard span,
+.field span,
+.logMeta,
+.sectionLabel {
+  color: var(--color-text-muted);
+}
+
+.summaryCard strong {
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+
+.panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panelIntro {
+  display: grid;
+  gap: 4px;
+}
+
+.filterSection {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(189, 204, 193, 0.1);
+  border-radius: 20px;
+  background: rgba(15, 29, 24, 0.56);
+}
+
+.sectionLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.filtersRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.filtersRowSecondary {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 0.88rem;
+}
+
+.field input,
+.field select {
+  border: 1px solid var(--color-border-subtle);
+  background: rgba(9, 18, 15, 0.88);
+  color: var(--color-text);
+  border-radius: 16px;
+  padding: 14px 16px;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: rgba(37, 250, 175, 0.55);
+  box-shadow: 0 0 0 4px rgba(37, 250, 175, 0.12);
+}
+
+.secondaryButton,
+.primaryButton {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    opacity 160ms ease;
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border-subtle);
+  background: rgba(35, 68, 56, 0.62);
+  color: var(--color-text);
+}
+
+.primaryButton {
+  border: none;
+  background: linear-gradient(135deg, #25faaf 0%, #1fcb90 100%);
+  color: #08130f;
+  box-shadow: 0 14px 30px rgba(37, 250, 175, 0.22);
+}
+
+.secondaryButton:hover,
+.primaryButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.panelActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.feedbackError {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(244, 88, 88, 0.18);
+  background: rgba(110, 28, 28, 0.24);
+  color: #ffb6b6;
+}
+
+.logsSection {
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+}
+
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.logsList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.logCard {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(18, 38, 31, 0.84) 0%, rgba(11, 25, 21, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+}
+
+.logTopRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.badgeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 250, 175, 0.12);
+  border: 1px solid rgba(37, 250, 175, 0.18);
+  color: #8ff8cf;
+  font-size: 0.82rem;
+}
+
+.logSummary {
+  margin: 0;
+  color: var(--color-text);
+}
+
+@media (max-width: 1120px) {
+  .summaryGrid,
+  .filtersRow,
+  .filtersRowSecondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding: 20px;
+  }
+
+  .header,
+  .panelActions,
+  .sectionHeading,
+  .logTopRow {
+    flex-direction: column;
+  }
+
+  .summaryGrid,
+  .filtersRow,
+  .filtersRowSecondary {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .headerActions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+}

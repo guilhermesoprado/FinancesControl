@@ -283,6 +283,22 @@ public sealed class ScheduledEntryServiceTests
             return Task.CompletedTask;
         }
 
+        public Task<bool> ExistsActiveByUserAndFinancialAccountIdAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_entries.Values.Any(x =>
+                x.UserId == userId
+                && x.FinancialAccountId == financialAccountId
+                && x.Status == ScheduledEntryStatus.Scheduled));
+        }
+
+        public Task<bool> ExistsActiveByUserAndTransactionCategoryIdAsync(Guid userId, Guid transactionCategoryId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_entries.Values.Any(x =>
+                x.UserId == userId
+                && x.TransactionCategoryId == transactionCategoryId
+                && x.Status == ScheduledEntryStatus.Scheduled));
+        }
+
         public Task<ScheduledEntry?> GetByUserAndIdAsync(Guid userId, Guid scheduledEntryId, CancellationToken cancellationToken)
         {
             _entries.TryGetValue(scheduledEntryId, out var entry);

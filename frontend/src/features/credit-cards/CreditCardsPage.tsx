@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import { ApiError } from "@/services/api-client";
 import {
   createCreditCard,
@@ -345,7 +346,7 @@ export function CreditCardsPage() {
           <small>Posicao atual de faturas abertas</small>
         </article>
 
-        <article className={styles.summaryCard}>
+        <article className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
           <span>Compras registradas</span>
           <strong>{totalPurchases}</strong>
           <small>Compras reais vinculadas aos cartoes</small>
@@ -366,35 +367,36 @@ export function CreditCardsPage() {
           </button>
         </div>
 
-        {status === "loading" || isLoading ? (
-          <div className={styles.skeletonList}>
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-          </div>
-        ) : null}
+        {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
 
         {status !== "loading" && !isLoading && loadError ? (
-          <div className={styles.stateBlock}>
-            <h3>Nao foi possivel carregar seus cartoes.</h3>
-            <p>{loadError}</p>
-            <button className={styles.secondaryButton} onClick={() => void loadCreditCards()}>
-              Tentar novamente
-            </button>
-          </div>
+          <SharedState
+            eyebrow="Credito"
+            title="Nao foi possivel carregar seus cartoes"
+            description={loadError}
+            tone="error"
+            compact
+            actions={
+              <button className={styles.secondaryButton} onClick={() => void loadCreditCards()}>
+                Tentar novamente
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && creditCards.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Nenhum cartao cadastrado ainda</h3>
-            <p>
-              Voce ainda nao possui cartoes cadastrados. Cadastre seu primeiro
-              cartao para preparar o controle de faturas e compras no credito.
-            </p>
-            <button className={styles.primaryButton} onClick={handleOpenModal}>
-              Novo cartao
-            </button>
-          </div>
+          <SharedState
+            eyebrow="Credito"
+            title="Nenhum cartao cadastrado ainda"
+            description="Voce ainda nao possui cartoes cadastrados. Cadastre seu primeiro cartao para preparar o controle de faturas e compras no credito."
+            tone="empty"
+            compact
+            actions={
+              <button className={styles.primaryButton} onClick={handleOpenModal}>
+                Novo cartao
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && creditCards.length > 0 ? (

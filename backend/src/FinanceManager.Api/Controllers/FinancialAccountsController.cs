@@ -53,6 +53,39 @@ public sealed class FinancialAccountsController : ControllerBase
         return Ok(accounts.Select(MapResponse).ToList());
     }
 
+    [HttpPut("{financialAccountId:guid}")]
+    [ProducesResponseType(typeof(FinancialAccountResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FinancialAccountResponse>> Update(
+        Guid financialAccountId,
+        [FromBody] UpdateFinancialAccountRequest request,
+        CancellationToken cancellationToken)
+    {
+        var account = await _financialAccountService.UpdateAsync(
+            new UpdateFinancialAccountInput(
+                GetAuthenticatedUserId(),
+                financialAccountId,
+                request.Name,
+                MapType(request.Type),
+                request.InstitutionName,
+                request.Description),
+            cancellationToken);
+
+        return Ok(MapResponse(account));
+    }
+
+    [HttpPost("{financialAccountId:guid}/inactivate")]
+    [ProducesResponseType(typeof(FinancialAccountResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<FinancialAccountResponse>> Inactivate(
+        Guid financialAccountId,
+        CancellationToken cancellationToken)
+    {
+        var account = await _financialAccountService.InactivateAsync(
+            new InactivateFinancialAccountInput(GetAuthenticatedUserId(), financialAccountId),
+            cancellationToken);
+
+        return Ok(MapResponse(account));
+    }
+
     private Guid GetAuthenticatedUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)

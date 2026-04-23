@@ -20,6 +20,24 @@ public sealed class ScheduledEntryRepository : IScheduledEntryRepository
         return _dbContext.ScheduledEntries.AddAsync(scheduledEntry, cancellationToken).AsTask();
     }
 
+    public Task<bool> ExistsActiveByUserAndFinancialAccountIdAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)
+    {
+        return _dbContext.ScheduledEntries.AnyAsync(
+            x => x.UserId == userId
+                && x.FinancialAccountId == financialAccountId
+                && x.Status == ScheduledEntryStatus.Scheduled,
+            cancellationToken);
+    }
+
+    public Task<bool> ExistsActiveByUserAndTransactionCategoryIdAsync(Guid userId, Guid transactionCategoryId, CancellationToken cancellationToken)
+    {
+        return _dbContext.ScheduledEntries.AnyAsync(
+            x => x.UserId == userId
+                && x.TransactionCategoryId == transactionCategoryId
+                && x.Status == ScheduledEntryStatus.Scheduled,
+            cancellationToken);
+    }
+
     public Task<ScheduledEntry?> GetByUserAndIdAsync(Guid userId, Guid scheduledEntryId, CancellationToken cancellationToken)
     {
         return _dbContext.ScheduledEntries

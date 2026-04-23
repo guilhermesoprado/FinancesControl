@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import { ApiError } from "@/services/api-client";
 import { getCreditCards } from "@/services/credit-cards-service";
 import { getFinancialAccounts } from "@/services/financial-accounts-service";
@@ -641,39 +642,53 @@ export function InvoicesPage() {
           </div>
         </div>
 
-        {status === "loading" || isLoading ? <div className={styles.skeletonList}><div className={styles.skeletonRow} /><div className={styles.skeletonRow} /><div className={styles.skeletonRow} /></div> : null}
+        {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
 
         {status !== "loading" && !isLoading && loadError ? (
-          <div className={styles.stateBlock}>
-            <h3>Nao foi possivel carregar suas faturas.</h3>
-            <p>{loadError}</p>
-            <button className={styles.secondaryButton} onClick={() => void loadData(selectedCreditCardId || undefined)}>Tentar novamente</button>
-          </div>
+          <SharedState
+            eyebrow="Faturas"
+            title="Nao foi possivel carregar suas faturas"
+            description={loadError}
+            tone="error"
+            compact
+            actions={<button className={styles.secondaryButton} onClick={() => void loadData(selectedCreditCardId || undefined)}>Tentar novamente</button>}
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && creditCards.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Cadastre um cartao antes de abrir faturas</h3>
-            <p>O modulo de faturas depende de pelo menos um cartao de credito existente.</p>
-          </div>
+          <SharedState
+            eyebrow="Dependencia"
+            title="Cadastre um cartao antes de abrir faturas"
+            description="O modulo de faturas depende de pelo menos um cartao de credito existente."
+            tone="empty"
+            compact
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && financialAccounts.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Cadastre uma conta para pagar faturas</h3>
-            <p>O pagamento de fatura usa uma conta financeira existente como origem do debito.</p>
-          </div>
+          <SharedState
+            eyebrow="Dependencia"
+            title="Cadastre uma conta para pagar faturas"
+            description="O pagamento de fatura usa uma conta financeira existente como origem do debito."
+            tone="warning"
+            compact
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && creditCards.length > 0 && invoices.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Nenhuma fatura aberta ainda</h3>
-            <p>Registre uma compra real no cartao para abrir a fatura do ciclo correto automaticamente ou abra o ciclo manualmente quando precisar.</p>
-            <div className={styles.actionRow}>
-              <button className={styles.secondaryButton} onClick={handleOpenExpenseModal} disabled={expenseCategories.length === 0}>Nova compra</button>
-              <button className={styles.primaryButton} onClick={handleOpenCreateModal}>Nova fatura</button>
-            </div>
-          </div>
+          <SharedState
+            eyebrow="Ciclo"
+            title="Nenhuma fatura aberta ainda"
+            description="Registre uma compra real no cartao para abrir a fatura do ciclo correto automaticamente ou abra o ciclo manualmente quando precisar."
+            tone="empty"
+            compact
+            actions={
+              <div className={styles.actionRow}>
+                <button className={styles.secondaryButton} onClick={handleOpenExpenseModal} disabled={expenseCategories.length === 0}>Nova compra</button>
+                <button className={styles.primaryButton} onClick={handleOpenCreateModal}>Nova fatura</button>
+              </div>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && invoices.length > 0 ? (

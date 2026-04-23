@@ -52,6 +52,38 @@ public sealed class TransactionCategoriesController : ControllerBase
         return Ok(categories.Select(MapResponse).ToList());
     }
 
+    [HttpPut("{transactionCategoryId:guid}")]
+    [ProducesResponseType(typeof(TransactionCategoryResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TransactionCategoryResponse>> Update(
+        Guid transactionCategoryId,
+        [FromBody] UpdateTransactionCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var transactionCategory = await _transactionCategoryService.UpdateAsync(
+            new UpdateTransactionCategoryInput(
+                GetAuthenticatedUserId(),
+                transactionCategoryId,
+                request.Name,
+                request.Color,
+                request.Icon),
+            cancellationToken);
+
+        return Ok(MapResponse(transactionCategory));
+    }
+
+    [HttpPost("{transactionCategoryId:guid}/inactivate")]
+    [ProducesResponseType(typeof(TransactionCategoryResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TransactionCategoryResponse>> Inactivate(
+        Guid transactionCategoryId,
+        CancellationToken cancellationToken)
+    {
+        var transactionCategory = await _transactionCategoryService.InactivateAsync(
+            new InactivateTransactionCategoryInput(GetAuthenticatedUserId(), transactionCategoryId),
+            cancellationToken);
+
+        return Ok(MapResponse(transactionCategory));
+    }
+
     private Guid GetAuthenticatedUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)

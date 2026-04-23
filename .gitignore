@@ -58,3 +58,5 @@ frontend/.gitignore
 frontend/README.md
 frontend/public/
 fundingVSbooking/
+spec/
+spec/

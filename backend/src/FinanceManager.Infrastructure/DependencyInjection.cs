@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddDbContext<FinanceManagerDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardRepository, CreditCardRepository>();

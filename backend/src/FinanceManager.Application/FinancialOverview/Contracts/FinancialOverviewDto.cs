@@ -10,8 +10,19 @@ public sealed record FinancialOverviewDto(
     decimal IncomeTotal,
     decimal ExpenseTotal,
     decimal TransferTotal,
+    FinancialOverviewPeriodComparisonDto PeriodComparison,
     IReadOnlyList<FinancialOverviewAccountDto> Accounts,
-    IReadOnlyList<FinancialOverviewRecentTransactionDto> RecentTransactions);
+    IReadOnlyList<FinancialOverviewRecentTransactionDto> RecentTransactions,
+    IReadOnlyList<FinancialOverviewAccountPeriodSummaryDto> AccountSummaries,
+    IReadOnlyList<FinancialOverviewCategoryPeriodSummaryDto> CategorySummaries);
+
+public sealed record FinancialOverviewPeriodComparisonDto(
+    DateOnly PreviousPeriodFrom,
+    DateOnly PreviousPeriodTo,
+    decimal PreviousIncomeTotal,
+    decimal PreviousExpenseTotal,
+    decimal PreviousTransferTotal,
+    decimal PreviousNetResult);
 
 public sealed record FinancialOverviewAccountDto(
     Guid Id,
@@ -31,3 +42,17 @@ public sealed record FinancialOverviewRecentTransactionDto(
     Guid? FinancialAccountId,
     Guid? SourceFinancialAccountId,
     Guid? DestinationFinancialAccountId);
+
+public sealed record FinancialOverviewAccountPeriodSummaryDto(
+    Guid AccountId,
+    string AccountName,
+    decimal IncomeTotal,
+    decimal ExpenseTotal,
+    decimal NetResult);
+
+public sealed record FinancialOverviewCategoryPeriodSummaryDto(
+    Guid CategoryId,
+    string CategoryName,
+    TransactionType Type,
+    decimal TotalAmount,
+    int TransactionsCount);

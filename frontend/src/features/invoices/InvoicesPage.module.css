@@ -195,34 +195,11 @@
   min-width: 220px;
 }
 
-.skeletonList {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.skeletonRow {
-  height: 96px;
-  border-radius: 20px;
-  background: linear-gradient(90deg, rgba(25, 48, 39, 0.92) 0%, rgba(34, 61, 51, 0.98) 50%, rgba(25, 48, 39, 0.92) 100%);
-  animation: pulse 1.3s ease-in-out infinite;
-}
-
 .stateBlock {
   display: grid;
   justify-items: start;
   gap: 14px;
   padding: 38px 0 12px;
-}
-
-.stateBlock h3 {
-  font-size: 1.35rem;
-}
-
-.stateBlock p {
-  max-width: 620px;
-  color: var(--color-text-muted);
-  line-height: 1.6;
 }
 
 .invoiceList {
@@ -408,17 +385,6 @@
   border-radius: 18px;
   border: 1px solid var(--color-border-subtle);
   background: rgba(14, 28, 23, 0.82);
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-
-  50% {
-    opacity: 1;
-  }
 }
 
 @media (max-width: 720px) {

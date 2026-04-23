@@ -79,6 +79,13 @@
 .summaryCard {
   padding: 22px 24px;
   border-radius: 24px;
+  background: linear-gradient(180deg, rgba(18, 36, 30, 0.9) 0%, rgba(12, 26, 22, 0.96) 100%);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+}
+
+.summaryLeadCard {
+  border-color: rgba(37, 250, 175, 0.2);
+  background: linear-gradient(180deg, rgba(22, 54, 43, 0.96) 0%, rgba(13, 33, 26, 0.98) 100%);
 }
 
 .summaryCard span,
@@ -118,6 +125,7 @@
   margin-top: 24px;
   padding: 24px;
   border-radius: 28px;
+  background: linear-gradient(180deg, rgba(16, 34, 28, 0.95) 0%, rgba(10, 24, 20, 0.98) 100%);
 }
 
 .listHeader {
@@ -137,41 +145,6 @@
   color: var(--color-text-muted);
 }
 
-.skeletonList {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.skeletonRow {
-  height: 96px;
-  border-radius: 20px;
-  background: linear-gradient(
-    90deg,
-    rgba(25, 48, 39, 0.92) 0%,
-    rgba(34, 61, 51, 0.98) 50%,
-    rgba(25, 48, 39, 0.92) 100%
-  );
-  animation: pulse 1.3s ease-in-out infinite;
-}
-
-.stateBlock {
-  display: grid;
-  justify-items: start;
-  gap: 14px;
-  padding: 38px 0 12px;
-}
-
-.stateBlock h3 {
-  font-size: 1.35rem;
-}
-
-.stateBlock p {
-  max-width: 620px;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-
 .categoryList {
   display: grid;
   gap: 16px;
@@ -181,6 +154,8 @@
 .categoryCard {
   padding: 22px;
   border-radius: 22px;
+  background: linear-gradient(180deg, rgba(18, 38, 31, 0.84) 0%, rgba(11, 25, 21, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
 }
 
 .categoryTopRow {
@@ -240,6 +215,14 @@
   display: block;
   margin-top: 6px;
   font-size: 1.08rem;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
 }
 
 .primaryButton,
@@ -384,17 +367,6 @@
   margin-top: 8px;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
 @media (max-width: 720px) {
   .summaryGrid,
   .categoryMetaRow {
@@ -412,7 +384,8 @@
   .listHeader,
   .modalHeader,
   .formActions,
-  .categoryTopRow {
+  .categoryTopRow,
+  .actionRow {
     flex-direction: column;
   }
 

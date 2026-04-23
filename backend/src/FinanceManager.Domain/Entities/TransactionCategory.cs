@@ -51,4 +51,47 @@ public sealed class TransactionCategory
             UpdatedAtUtc = nowUtc
         };
     }
+
+    public void Update(
+        string name,
+        string? color,
+        string? icon,
+        DateTime nowUtc)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("Nao e possivel editar uma categoria do sistema.");
+        }
+
+        if (!IsActive)
+        {
+            throw new InvalidOperationException("Nao e possivel editar uma categoria inativa.");
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new InvalidOperationException("O nome da categoria transacional e obrigatorio.");
+        }
+
+        Name = name.Trim();
+        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        Icon = string.IsNullOrWhiteSpace(icon) ? null : icon.Trim();
+        UpdatedAtUtc = nowUtc;
+    }
+
+    public void Inactivate(DateTime nowUtc)
+    {
+        if (IsSystem)
+        {
+            throw new InvalidOperationException("Nao e possivel inativar uma categoria do sistema.");
+        }
+
+        if (!IsActive)
+        {
+            throw new InvalidOperationException("A categoria informada ja esta inativa.");
+        }
+
+        IsActive = false;
+        UpdatedAtUtc = nowUtc;
+    }
 }

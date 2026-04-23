@@ -70,4 +70,45 @@ public sealed class FinancialAccount
         CurrentBalanceSnapshot = (CurrentBalanceSnapshot ?? InitialBalance) + delta;
         UpdatedAtUtc = nowUtc;
     }
+
+    public void Update(
+        string name,
+        FinancialAccountType type,
+        string? institutionName,
+        string? description,
+        DateTime nowUtc)
+    {
+        if (!IsActive)
+        {
+            throw new InvalidOperationException("Nao e possivel editar uma conta financeira inativa.");
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new InvalidOperationException("O nome da conta financeira e obrigatorio.");
+        }
+
+        Name = name.Trim();
+        Type = type;
+        InstitutionName = string.IsNullOrWhiteSpace(institutionName) ? null : institutionName.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        UpdatedAtUtc = nowUtc;
+    }
+
+    public void Inactivate(DateTime nowUtc)
+    {
+        if (!IsActive)
+        {
+            throw new InvalidOperationException("A conta financeira informada ja esta inativa.");
+        }
+
+        var currentBalance = CurrentBalanceSnapshot ?? InitialBalance;
+        if (currentBalance != 0m)
+        {
+            throw new InvalidOperationException("Nao e possivel inativar uma conta financeira com saldo visivel diferente de zero.");
+        }
+
+        IsActive = false;
+        UpdatedAtUtc = nowUtc;
+    }
 }

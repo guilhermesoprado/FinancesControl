@@ -1,0 +1,5 @@
+D:\Pessoal\Estudo Programação\IA\Projetos\Estudando Agentes\docs\backend\src\FinanceManager.Domain\backend\artifacts\phase7-period-app-obj\Debug\net8.0\FinanceManager.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Pessoal\Estudo Programação\IA\Projetos\Estudando Agentes\docs\backend\src\FinanceManager.Domain\backend\artifacts\phase7-period-app-obj\Debug\net8.0\FinanceManager.Domain.AssemblyInfoInputs.cache
+D:\Pessoal\Estudo Programação\IA\Projetos\Estudando Agentes\docs\backend\src\FinanceManager.Domain\backend\artifacts\phase7-period-app-obj\Debug\net8.0\FinanceManager.Domain.AssemblyInfo.cs
+D:\Pessoal\Estudo Programação\IA\Projetos\Estudando Agentes\docs\backend\src\FinanceManager.Domain\backend\artifacts\phase7-period-app-obj\Debug\net8.0\FinanceManager.Domain.csproj.CoreCompileInputs.cache
+D:\Pessoal\Estudo Programação\IA\Projetos\Estudando Agentes\docs\backend\src\FinanceManager.Domain\backend\artifacts\phase7-period-app-obj\Debug\net8.0\FinanceManager.Domain.sourcelink.json

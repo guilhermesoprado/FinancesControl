@@ -197,11 +197,7 @@ public sealed class InvoiceService : IInvoiceService
             throw new AppValidationException("A fatura informada nao foi encontrada.");
         }
 
-        var financialAccount = await _financialAccountRepository.GetByUserIdAndIdAsync(input.UserId, input.FinancialAccountId, cancellationToken);
-        if (financialAccount is null)
-        {
-            throw new AppValidationException("A conta financeira informada nao foi encontrada.");
-        }
+        var financialAccount = await RequireActiveFinancialAccountAsync(input.UserId, input.FinancialAccountId, cancellationToken);
 
         var nowUtc = _dateTimeProvider.UtcNow;
         invoice.ApplyFinancialCharges(DateOnly.FromDateTime(nowUtc), nowUtc, DefaultPenaltyRate, DefaultLateInterestMonthlyRate, DefaultRevolvingInterestMonthlyRate);
@@ -369,6 +365,23 @@ public sealed class InvoiceService : IInvoiceService
         }
 
         return category;
+    }
+
+    private async Task<FinancialAccount> RequireActiveFinancialAccountAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)
+    {
+        var financialAccount = await _financialAccountRepository.GetByUserIdAndIdAsync(userId, financialAccountId, cancellationToken);
+
+        if (financialAccount is null)
+        {
+            throw new AppValidationException("A conta financeira informada nao foi encontrada.");
+        }
+
+        if (!financialAccount.IsActive)
+        {
+            throw new AppValidationException("A conta financeira informada esta inativa.");
+        }
+
+        return financialAccount;
     }
 
     private async Task<Invoice> RequireOrOpenInvoiceByReferenceAsync(

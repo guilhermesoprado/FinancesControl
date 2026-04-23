@@ -9,6 +9,7 @@ public sealed class FinanceManagerDbContext : DbContext
     {
     }
 
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<User> Users => Set<User>();
     public DbSet<FinancialAccount> FinancialAccounts => Set<FinancialAccount>();
     public DbSet<CreditCard> CreditCards => Set<CreditCard>();

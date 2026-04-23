@@ -27,6 +27,31 @@ export interface FinancialOverviewRecentTransaction {
   destinationFinancialAccountId: string | null;
 }
 
+export interface FinancialOverviewAccountSummary {
+  accountId: string;
+  accountName: string;
+  incomeTotal: number;
+  expenseTotal: number;
+  netResult: number;
+}
+
+export interface FinancialOverviewCategorySummary {
+  categoryId: string;
+  categoryName: string;
+  type: FinancialOverviewTransactionType;
+  totalAmount: number;
+  transactionsCount: number;
+}
+
+export interface FinancialOverviewPeriodComparison {
+  previousPeriodFrom: string;
+  previousPeriodTo: string;
+  previousIncomeTotal: number;
+  previousExpenseTotal: number;
+  previousTransferTotal: number;
+  previousNetResult: number;
+}
+
 export interface FinancialOverview {
   periodFrom: string;
   periodTo: string;
@@ -35,6 +60,9 @@ export interface FinancialOverview {
   incomeTotal: number;
   expenseTotal: number;
   transferTotal: number;
+  periodComparison: FinancialOverviewPeriodComparison;
   accounts: FinancialOverviewAccount[];
   recentTransactions: FinancialOverviewRecentTransaction[];
+  accountSummaries: FinancialOverviewAccountSummary[];
+  categorySummaries: FinancialOverviewCategorySummary[];
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import { ApiError } from "@/services/api-client";
 import { getFinancialAccounts } from "@/services/financial-accounts-service";
 import { getTransactionCategories } from "@/services/transaction-categories-service";
@@ -156,8 +157,23 @@ export function TransactionsPage() {
       </section>
 
       {submitSuccess ? <div className={styles.feedbackSuccess}>{submitSuccess}</div> : null}
-      {!hasAccounts ? <section className={styles.stateBlock}><h2>Voce precisa de contas para iniciar o nucleo transacional</h2><p>O modulo de transacoes depende de pelo menos uma conta financeira. Cadastre contas primeiro no modulo de Contas.</p></section> : null}
-      {hasAccounts && categories.length === 0 ? <section className={styles.warningBlock}><strong>Receitas e despesas exigem categorias.</strong><p>Transferencias ja podem ser registradas, mas receitas e despesas precisam de categorias compativeis.</p></section> : null}
+      {!hasAccounts ? (
+        <SharedState
+          eyebrow="Base obrigatoria"
+          title="Voce precisa de contas para iniciar o nucleo transacional"
+          description="O modulo de transacoes depende de pelo menos uma conta financeira. Cadastre contas primeiro no modulo de Contas."
+          tone="empty"
+        />
+      ) : null}
+      {hasAccounts && categories.length === 0 ? (
+        <SharedState
+          eyebrow="Dependencia"
+          title="Receitas e despesas exigem categorias"
+          description="Transferencias ja podem ser registradas, mas receitas e despesas precisam de categorias compativeis."
+          tone="warning"
+          compact
+        />
+      ) : null}
 
       <section className={styles.filtersCard}>
         <form className={styles.filtersForm} onSubmit={async (event) => { event.preventDefault(); setSubmitSuccess(null); await loadPageData(filters); }}>
@@ -177,9 +193,26 @@ export function TransactionsPage() {
 
       <section className={styles.listCard}>
         <div className={styles.listHeader}><div><h2>Extrato do periodo</h2><p>Visualize o nucleo operacional do dinheiro por data, tipo e conta.</p></div></div>
-        {status === "loading" || isLoading ? <div className={styles.skeletonList}><div className={styles.skeletonRow} /><div className={styles.skeletonRow} /><div className={styles.skeletonRow} /></div> : null}
-        {status !== "loading" && !isLoading && loadError ? <div className={styles.stateBlock}><h3>Nao foi possivel carregar suas transacoes.</h3><p>{loadError}</p><button className={styles.secondaryButton} onClick={() => void loadPageData(filters)}>Tentar novamente</button></div> : null}
-        {status !== "loading" && !isLoading && !loadError && transactions.length === 0 ? <div className={styles.stateBlock}><h3>Nenhuma transacao encontrada no periodo</h3><p>Ajuste os filtros ou registre sua primeira receita, despesa ou transferencia para iniciar o extrato operacional.</p></div> : null}
+        {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
+        {status !== "loading" && !isLoading && loadError ? (
+          <SharedState
+            eyebrow="Extrato"
+            title="Nao foi possivel carregar suas transacoes"
+            description={loadError}
+            tone="error"
+            compact
+            actions={<button className={styles.secondaryButton} onClick={() => void loadPageData(filters)}>Tentar novamente</button>}
+          />
+        ) : null}
+        {status !== "loading" && !isLoading && !loadError && transactions.length === 0 ? (
+          <SharedState
+            eyebrow="Extrato"
+            title="Nenhuma transacao encontrada no periodo"
+            description="Ajuste os filtros ou registre sua primeira receita, despesa ou transferencia para iniciar o extrato operacional."
+            tone="empty"
+            compact
+          />
+        ) : null}
         {status !== "loading" && !isLoading && !loadError && transactions.length > 0 ? (
           <div className={styles.transactionList}>
             {transactions.map((transaction) => {

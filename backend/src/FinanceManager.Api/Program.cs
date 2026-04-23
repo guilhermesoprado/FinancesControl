@@ -2,6 +2,8 @@ using System.Text;
 using FinanceManager.Api.Middleware;
 using FinanceManager.Application.Authentication;
 using FinanceManager.Application.Authentication.Services;
+using FinanceManager.Application.AuditLogs;
+using FinanceManager.Application.AuditLogs.Services;
 using FinanceManager.Application.CreditCards;
 using FinanceManager.Application.CreditCards.Services;
 using FinanceManager.Application.FinancialAccounts;
@@ -77,6 +79,7 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ICreditCardService, CreditCardService>();
 builder.Services.AddScoped<IFinancialAccountService, FinancialAccountService>();
 builder.Services.AddScoped<IFinancialOverviewService, FinancialOverviewService>();

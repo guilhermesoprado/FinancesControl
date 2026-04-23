@@ -172,6 +172,29 @@ public sealed class InvoiceServiceTests
         Assert.Equal("Cartao Azul", single.CreditCardName);
     }
 
+    [Fact]
+    public async Task PayAsync_ShouldRejectInactiveFinancialAccount()
+    {
+        var nowUtc = new DateTime(2026, 4, 9, 15, 0, 0, DateTimeKind.Utc);
+        var userId = Guid.NewGuid();
+        var creditCard = CreditCard.Create(userId, "Cartao Azul", "Visa", 2500m, 10, 18, null, nowUtc.AddDays(-5));
+        var invoice = Invoice.Open(userId, creditCard.Id, 2026, 4, new DateOnly(2026, 3, 11), new DateOnly(2026, 4, 10), new DateOnly(2026, 4, 10), new DateOnly(2026, 4, 18), nowUtc.AddDays(-1));
+        invoice.AddCharge(100m, nowUtc.AddHours(-6));
+        var account = FinancialAccount.Create(userId, "Conta pagamento", FinancialAccountType.BankAccount, 0m, null, null, nowUtc.AddDays(-2));
+        account.Inactivate(nowUtc.AddHours(-1));
+        var service = CreateService(
+            new FakeInvoiceRepository(invoice),
+            new FakeCreditCardRepository(creditCard),
+            nowUtc,
+            financialAccountRepository: new FakeFinancialAccountRepository(account));
+
+        var exception = await Assert.ThrowsAsync<AppValidationException>(() => service.PayAsync(
+            new PayInvoiceInput(userId, invoice.Id, account.Id, 50m),
+            CancellationToken.None));
+
+        Assert.Equal("A conta financeira informada esta inativa.", exception.Message);
+    }
+
     private static InvoiceService CreateService(
         FakeInvoiceRepository invoiceRepository,
         FakeCreditCardRepository creditCardRepository,
@@ -299,9 +322,20 @@ public sealed class InvoiceServiceTests
 
     private sealed class FakeFinancialAccountRepository : IFinancialAccountRepository
     {
+        private readonly Dictionary<Guid, FinancialAccount> _accounts;
+
+        public FakeFinancialAccountRepository(params FinancialAccount[] accounts)
+        {
+            _accounts = accounts.ToDictionary(x => x.Id);
+        }
+
         public Task AddAsync(FinancialAccount financialAccount, CancellationToken cancellationToken) => Task.CompletedTask;
-        public Task<FinancialAccount?> GetByUserIdAndIdAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken) => Task.FromResult<FinancialAccount?>(null);
-        public Task<IReadOnlyList<FinancialAccount>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult((IReadOnlyList<FinancialAccount>)[]);
+        public Task<FinancialAccount?> GetByUserIdAndIdAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)
+        {
+            _accounts.TryGetValue(financialAccountId, out var account);
+            return Task.FromResult(account is not null && account.UserId == userId ? account : null);
+        }
+        public Task<IReadOnlyList<FinancialAccount>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult((IReadOnlyList<FinancialAccount>)_accounts.Values.Where(x => x.UserId == userId).ToList());
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 

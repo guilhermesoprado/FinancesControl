@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import { ApiError } from "@/services/api-client";
 import {
   createTransactionCategory,
   getTransactionCategories,
+  inactivateTransactionCategory,
+  updateTransactionCategory,
 } from "@/services/transaction-categories-service";
 import type {
   CreateTransactionCategoryInput,
   TransactionCategory,
   TransactionCategoryType,
+  UpdateTransactionCategoryInput,
 } from "@/types/transaction-categories";
 import styles from "./TransactionCategoriesPage.module.css";
 
@@ -44,6 +48,8 @@ export function TransactionCategoriesPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [actionCategoryId, setActionCategoryId] = useState<string>("");
 
   const loadCategories = useCallback(async () => {
     setIsLoading(true);
@@ -81,6 +87,20 @@ export function TransactionCategoriesPage() {
     setFormState(INITIAL_FORM);
     setSubmitError(null);
     setSubmitSuccess(null);
+    setEditingCategoryId(null);
+    setIsModalOpen(true);
+  }
+
+  function handleOpenEditModal(category: TransactionCategory) {
+    setFormState({
+      name: category.name,
+      type: category.type,
+      color: category.color ?? "#22c55e",
+      icon: category.icon ?? "",
+    });
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    setEditingCategoryId(category.id);
     setIsModalOpen(true);
   }
 
@@ -91,6 +111,7 @@ export function TransactionCategoriesPage() {
 
     setIsModalOpen(false);
     setSubmitError(null);
+    setEditingCategoryId(null);
   }
 
   function handleChange<K extends keyof CreateTransactionCategoryInput>(
@@ -116,25 +137,47 @@ export function TransactionCategoriesPage() {
     setIsSubmitting(true);
 
     try {
-      const created = await createTransactionCategory({
-        ...formState,
-        name: formState.name.trim(),
-        color: formState.color?.trim() || undefined,
-        icon: formState.icon?.trim() || undefined,
-      });
+      if (editingCategoryId) {
+        const updated = await updateTransactionCategory(editingCategoryId, {
+          name: formState.name.trim(),
+          color: formState.color?.trim() || undefined,
+          icon: formState.icon?.trim() || undefined,
+        } satisfies UpdateTransactionCategoryInput);
 
-      setCategories((current) =>
-        [...current, created].sort((left, right) => {
-          if (left.type === right.type) {
-            return left.name.localeCompare(right.name);
-          }
+        setCategories((current) =>
+          current.map((category) => (category.id === updated.id ? updated : category))
+            .sort((left, right) => {
+              if (left.type === right.type) {
+                return left.name.localeCompare(right.name);
+              }
 
-          return left.type.localeCompare(right.type);
-        }),
-      );
-      setSubmitSuccess("Categoria criada com sucesso.");
+              return left.type.localeCompare(right.type);
+            }),
+        );
+        setSubmitSuccess("Categoria atualizada com sucesso.");
+      } else {
+        const created = await createTransactionCategory({
+          ...formState,
+          name: formState.name.trim(),
+          color: formState.color?.trim() || undefined,
+          icon: formState.icon?.trim() || undefined,
+        });
+
+        setCategories((current) =>
+          [...current, created].sort((left, right) => {
+            if (left.type === right.type) {
+              return left.name.localeCompare(right.name);
+            }
+
+            return left.type.localeCompare(right.type);
+          }),
+        );
+        setSubmitSuccess("Categoria criada com sucesso.");
+      }
+
       setIsModalOpen(false);
       setFormState(INITIAL_FORM);
+      setEditingCategoryId(null);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout();
@@ -149,6 +192,33 @@ export function TransactionCategoriesPage() {
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleInactivate(category: TransactionCategory) {
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    setActionCategoryId(category.id);
+
+    try {
+      const updated = await inactivateTransactionCategory(category.id);
+      setCategories((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setSubmitSuccess("Categoria inativada com sucesso.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        logout();
+        return;
+      }
+
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : "Nao foi possivel inativar a categoria agora.",
+      );
+    } finally {
+      setActionCategoryId("");
     }
   }
 
@@ -178,7 +248,7 @@ export function TransactionCategoriesPage() {
       </header>
 
       <section className={styles.summaryGrid}>
-        <article className={styles.summaryCard}>
+        <article className={`${styles.summaryCard} ${styles.summaryLeadCard}`}>
           <span>Total de categorias</span>
           <strong>{categories.length}</strong>
           <small>Segundo modulo operacional da fase</small>
@@ -214,33 +284,35 @@ export function TransactionCategoriesPage() {
         </div>
 
         {status === "loading" || isLoading ? (
-          <div className={styles.skeletonList}>
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-          </div>
+          <SharedSkeletonRows rows={3} />
         ) : null}
 
         {status !== "loading" && !isLoading && loadError ? (
-          <div className={styles.stateBlock}>
-            <h3>Nao foi possivel carregar suas categorias.</h3>
-            <p>{loadError}</p>
-            <button className={styles.secondaryButton} onClick={() => void loadCategories()}>
-              Tentar novamente
-            </button>
-          </div>
+          <SharedState
+            tone="error"
+            eyebrow="Falha na leitura"
+            title="Nao foi possivel carregar suas categorias."
+            description={loadError}
+            actions={
+              <button className={styles.secondaryButton} onClick={() => void loadCategories()}>
+                Tentar novamente
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && categories.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Nenhuma categoria cadastrada ainda</h3>
-            <p>
-              Voce ainda nao possui categorias cadastradas. Crie as categorias que irao organizar suas receitas e despesas.
-            </p>
-            <button className={styles.primaryButton} onClick={handleOpenModal}>
-              Nova categoria
-            </button>
-          </div>
+          <SharedState
+            tone="empty"
+            eyebrow="Base estrutural"
+            title="Nenhuma categoria cadastrada ainda"
+            description="Voce ainda nao possui categorias cadastradas. Crie as categorias que irao organizar suas receitas e despesas."
+            actions={
+              <button className={styles.primaryButton} onClick={handleOpenModal}>
+                Nova categoria
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && categories.length > 0 ? (
@@ -278,6 +350,23 @@ export function TransactionCategoriesPage() {
                     <strong>{formatDate(category.createdAtUtc)}</strong>
                   </div>
                 </div>
+
+                <div className={styles.actionRow}>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => handleOpenEditModal(category)}
+                    disabled={!category.isActive || category.isSystem || actionCategoryId === category.id}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => void handleInactivate(category)}
+                    disabled={!category.isActive || category.isSystem || actionCategoryId === category.id}
+                  >
+                    {actionCategoryId === category.id ? "Salvando..." : "Inativar"}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -287,14 +376,16 @@ export function TransactionCategoriesPage() {
       {isModalOpen ? (
         <div className={styles.modalOverlay} role="presentation">
           <div className={styles.modalCard}>
-            <div className={styles.modalHeader}>
-              <div>
-                <p className={styles.eyebrow}>Nova categoria</p>
-                <h2>Cadastre uma categoria transacional</h2>
-                <p>
-                  Crie categorias que organizarao suas receitas e despesas nos proximos modulos do sistema.
-                </p>
-              </div>
+              <div className={styles.modalHeader}>
+                <div>
+                  <p className={styles.eyebrow}>{editingCategoryId ? "Editar categoria" : "Nova categoria"}</p>
+                  <h2>{editingCategoryId ? "Atualize uma categoria transacional" : "Cadastre uma categoria transacional"}</h2>
+                  <p>
+                    {editingCategoryId
+                      ? "Ajuste os dados visuais e o nome da categoria mantendo o tipo original."
+                      : "Crie categorias que organizarao suas receitas e despesas nos proximos modulos do sistema."}
+                  </p>
+                </div>
 
               <button className={styles.iconButton} onClick={handleCloseModal}>
                 Fechar
@@ -316,6 +407,7 @@ export function TransactionCategoriesPage() {
                   <span>Tipo</span>
                   <select
                     value={formState.type}
+                    disabled={Boolean(editingCategoryId)}
                     onChange={(event) =>
                       handleChange("type", event.target.value as TransactionCategoryType)
                     }
@@ -357,7 +449,7 @@ export function TransactionCategoriesPage() {
                 </button>
 
                 <button className={styles.primaryButton} type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Criando..." : "Criar categoria"}
+                  {isSubmitting ? "Salvando..." : editingCategoryId ? "Salvar categoria" : "Criar categoria"}
                 </button>
               </div>
             </form>

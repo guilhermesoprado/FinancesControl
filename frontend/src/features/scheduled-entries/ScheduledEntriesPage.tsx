@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import type { FinancialAccount } from "@/types/financial-accounts";
 import type { TransactionCategory } from "@/types/transaction-categories";
 import type {
@@ -1211,23 +1212,22 @@ export function ScheduledEntriesPage() {
       {submitError ? <div className={styles.feedbackError}>{submitError}</div> : null}
 
       {!activeAccounts.length ? (
-        <section className={styles.stateBlock}>
-          <h2>Voce precisa de uma conta ativa para planejar</h2>
-          <p>
-            O modulo de planejamento depende de pelo menos uma conta financeira
-            ativa no modulo de Contas.
-          </p>
-        </section>
+        <SharedState
+          eyebrow="Base obrigatoria"
+          title="Voce precisa de uma conta ativa para planejar"
+          description="O modulo de planejamento depende de pelo menos uma conta financeira ativa no modulo de Contas."
+          tone="empty"
+        />
       ) : null}
 
       {activeAccounts.length > 0 && !activeCategories.length ? (
-        <section className={styles.warningBlock}>
-          <strong>Planejamento exige categorias ativas.</strong>
-          <p>
-            Cadastre ou reative categorias de receita e despesa para iniciar os
-            previstos.
-          </p>
-        </section>
+        <SharedState
+          eyebrow="Dependencia"
+          title="Planejamento exige categorias ativas"
+          description="Cadastre ou reative categorias de receita e despesa para iniciar os previstos."
+          tone="warning"
+          compact
+        />
       ) : null}
 
       <section className={styles.filtersCard}>
@@ -1527,42 +1527,43 @@ export function ScheduledEntriesPage() {
           </button>
         </div>
 
-        {status === "loading" || isLoading ? (
-          <div className={styles.skeletonList}>
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-          </div>
-        ) : null}
+        {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
 
         {status !== "loading" && !isLoading && loadError ? (
-          <div className={styles.stateBlock}>
-            <h3>Nao foi possivel carregar seu planejamento.</h3>
-            <p>{loadError}</p>
-            <button
-              className={styles.secondaryButton}
-              onClick={() => void loadPageData(filters)}
-            >
-              Tentar novamente
-            </button>
-          </div>
+          <SharedState
+            eyebrow="Planejamento"
+            title="Nao foi possivel carregar seu planejamento"
+            description={loadError}
+            tone="error"
+            compact
+            actions={
+              <button
+                className={styles.secondaryButton}
+                onClick={() => void loadPageData(filters)}
+              >
+                Tentar novamente
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && filteredEntries.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Nenhum previsto encontrado</h3>
-            <p>
-              Crie seu primeiro lancamento planejado para abrir a camada de
-              planejamento da Fase 4 com controle simples e auditavel.
-            </p>
-            <button
-              className={styles.primaryButton}
-              onClick={openModal}
-              disabled={!hasOperationalBase}
-            >
-              Novo previsto
-            </button>
-          </div>
+          <SharedState
+            eyebrow="Planejamento"
+            title="Nenhum previsto encontrado"
+            description="Crie seu primeiro lancamento planejado para abrir a camada de planejamento da Fase 4 com controle simples e auditavel."
+            tone="empty"
+            compact
+            actions={
+              <button
+                className={styles.primaryButton}
+                onClick={openModal}
+                disabled={!hasOperationalBase}
+              >
+                Novo previsto
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && filteredEntries.length > 0 ? (

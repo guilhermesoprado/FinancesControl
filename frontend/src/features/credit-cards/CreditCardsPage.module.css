@@ -62,8 +62,8 @@
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
   margin-top: 28px;
 }
 
@@ -81,8 +81,9 @@
 }
 
 .summaryCard {
-  padding: 22px 24px;
+  padding: 18px 18px 20px;
   border-radius: 24px;
+  background: linear-gradient(180deg, rgba(10, 23, 19, 0.9), rgba(7, 17, 14, 0.92));
 }
 
 .summaryCard span,
@@ -93,9 +94,14 @@
 .summaryCard strong {
   display: block;
   margin: 12px 0 8px;
-  font-size: 2rem;
+  font-size: 1.68rem;
   line-height: 1;
   letter-spacing: -0.04em;
+}
+
+.summaryCardAccent {
+  background: linear-gradient(180deg, rgba(17, 47, 37, 0.94), rgba(8, 21, 17, 0.96));
+  border-color: rgba(37, 250, 175, 0.16);
 }
 
 .feedbackSuccess,
@@ -120,7 +126,7 @@
 
 .listCard {
   margin-top: 24px;
-  padding: 24px;
+  padding: 22px;
   border-radius: 28px;
 }
 
@@ -141,50 +147,16 @@
   color: var(--color-text-muted);
 }
 
-.skeletonList {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.skeletonRow {
-  height: 96px;
-  border-radius: 20px;
-  background: linear-gradient(
-    90deg,
-    rgba(25, 48, 39, 0.92) 0%,
-    rgba(34, 61, 51, 0.98) 50%,
-    rgba(25, 48, 39, 0.92) 100%
-  );
-  animation: pulse 1.3s ease-in-out infinite;
-}
-
-.stateBlock {
-  display: grid;
-  justify-items: start;
-  gap: 14px;
-  padding: 38px 0 12px;
-}
-
-.stateBlock h3 {
-  font-size: 1.35rem;
-}
-
-.stateBlock p {
-  max-width: 620px;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-
 .cardList {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   margin-top: 24px;
 }
 
 .creditCard {
-  padding: 22px;
+  padding: 20px;
   border-radius: 22px;
+  background: linear-gradient(180deg, rgba(9, 22, 18, 0.82) 0%, rgba(7, 17, 14, 0.9) 100%);
 }
 
 .cardTopRow {
@@ -220,7 +192,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 18px;
 }
 
 .cardMetaRow span,
@@ -241,8 +213,10 @@
 }
 
 .overviewItem {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-radius: 18px;
+  background: rgba(6, 16, 13, 0.72);
+  box-shadow: none;
 }
 
 .cardDescription {
@@ -252,8 +226,8 @@
 }
 
 .statementSection {
-  margin-top: 22px;
-  padding-top: 22px;
+  margin-top: 20px;
+  padding-top: 20px;
   border-top: 1px solid var(--color-border-subtle);
 }
 
@@ -296,7 +270,7 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 14px;
   align-items: end;
 }
 
@@ -331,6 +305,8 @@
   min-height: 44px;
   padding: 10px 14px;
   border-radius: 14px;
+  background: rgba(6, 16, 13, 0.72);
+  box-shadow: none;
 }
 
 .statementEmpty {
@@ -339,6 +315,7 @@
   border-radius: 18px;
   border: 1px dashed var(--color-border-subtle);
   color: var(--color-text-muted);
+  background: rgba(6, 16, 13, 0.56);
 }
 
 .statementGroupList,
@@ -352,8 +329,10 @@
 }
 
 .statementGroup {
-  padding: 18px;
+  padding: 16px;
   border-radius: 20px;
+  background: rgba(6, 16, 13, 0.66);
+  box-shadow: none;
 }
 
 .statementGroupHeader strong,
@@ -366,8 +345,10 @@
 }
 
 .statementExpenseCard {
-  padding: 16px;
+  padding: 14px;
   border-radius: 18px;
+  background: rgba(6, 16, 13, 0.72);
+  box-shadow: none;
 }
 
 .statementExpenseMetaRow {
@@ -510,17 +491,6 @@
   justify-content: flex-end;
   gap: 14px;
   margin-top: 8px;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-
-  50% {
-    opacity: 1;
-  }
 }
 
 @media (max-width: 1180px) {

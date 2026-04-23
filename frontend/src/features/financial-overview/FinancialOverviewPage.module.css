@@ -60,7 +60,6 @@
   line-height: 1.6;
 }
 
-.skeletonGrid,
 .summaryGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -68,22 +67,15 @@
   margin-top: 28px;
 }
 
-.skeletonCard,
 .summaryCard,
+.managerialCard,
+.managerialSection,
 .panelCard,
 .accountCard,
-.transactionCard,
-.stateBlock {
+.transactionCard {
   border: 1px solid var(--color-border-subtle);
   background: linear-gradient(180deg, rgba(19, 39, 32, 0.96) 0%, rgba(13, 30, 24, 0.98) 100%);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
-}
-
-.skeletonCard {
-  height: 144px;
-  border-radius: 24px;
-  background: linear-gradient(90deg, rgba(25, 48, 39, 0.92) 0%, rgba(34, 61, 51, 0.98) 50%, rgba(25, 48, 39, 0.92) 100%);
-  animation: pulse 1.3s ease-in-out infinite;
 }
 
 .summaryCard {
@@ -91,13 +83,18 @@
   border-radius: 24px;
 }
 
+.summaryLeadCard {
+  border-color: rgba(37, 250, 175, 0.2);
+  background: linear-gradient(180deg, rgba(22, 54, 43, 0.96) 0%, rgba(13, 33, 26, 0.98) 100%);
+}
+
 .summaryCard span,
 .summaryCard small,
+.managerialCard span,
 .panelHeader p,
 .accountCard p,
 .transactionTopRow p,
 .transactionDescription,
-.stateBlock p,
 .inlineEmpty p {
   color: var(--color-text-muted);
 }
@@ -108,6 +105,110 @@
   font-size: 2rem;
   line-height: 1;
   letter-spacing: -0.04em;
+}
+
+.loadingBlock {
+  margin-top: 28px;
+}
+
+.managerialSection {
+  margin-top: 24px;
+  padding: 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(16, 34, 28, 0.95) 0%, rgba(10, 24, 20, 0.98) 100%);
+}
+
+.sectionHeader h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.sectionEyebrow {
+  color: #72d8af;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  margin-bottom: 10px;
+}
+
+.sectionSubtitle {
+  max-width: 720px;
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.managerialGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.managerialCard {
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(18, 38, 31, 0.84) 0%, rgba(11, 25, 21, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+}
+
+.managerialCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.4rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.managerialCard p {
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.comparisonLeadCard {
+  border-color: rgba(37, 250, 175, 0.18);
+}
+
+.comparisonCard {
+  padding: 18px 20px;
+  border-radius: 22px;
+  border: 1px solid var(--color-border-subtle);
+  background: linear-gradient(180deg, rgba(18, 38, 31, 0.84) 0%, rgba(11, 25, 21, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+}
+
+.comparisonCard span {
+  color: var(--color-text-muted);
+}
+
+.comparisonCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.28rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.comparisonCard p {
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.positiveValue {
+  color: #8ff8cf;
+}
+
+.negativeValue {
+  color: #ffb4b4;
 }
 
 .linkRow {
@@ -154,22 +255,16 @@
   cursor: pointer;
 }
 
-.stateBlock {
-  display: grid;
-  justify-items: start;
-  gap: 14px;
-  padding: 28px;
-  border-radius: 28px;
-  margin-top: 28px;
-}
-
-.stateBlock h2 {
-  font-size: 1.35rem;
-}
-
 .contentGrid {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 22px;
+  margin-top: 24px;
+}
+
+.intelligenceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
   margin-top: 24px;
 }
@@ -190,19 +285,25 @@
 }
 
 .accountList,
-.transactionList {
+.transactionList,
+.accountSummaryList,
+.categorySummaryList {
   display: grid;
   gap: 16px;
   margin-top: 22px;
 }
 
 .accountCard,
-.transactionCard {
+.transactionCard,
+.accountSummaryCard,
+.categorySummaryCard {
   padding: 18px 20px;
   border-radius: 22px;
 }
 
-.accountCard {
+.accountCard,
+.accountSummaryCard,
+.categorySummaryCard {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -210,13 +311,24 @@
 }
 
 .accountCard h3,
-.transactionTopRow h3 {
+.transactionTopRow h3,
+.accountSummaryTopRow h3,
+.categorySummaryTopRow h3 {
   font-size: 1.05rem;
 }
 
 .accountCard p,
-.transactionTopRow p {
+.transactionTopRow p,
+.accountSummaryTopRow p,
+.categorySummaryTopRow p {
   margin-top: 6px;
+}
+
+.accountSummaryCard,
+.categorySummaryCard {
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(18, 38, 31, 0.84) 0%, rgba(11, 25, 21, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
 }
 
 .accountMeta {
@@ -224,28 +336,36 @@
 }
 
 .accountMeta span,
-.transactionMetaRow span {
+.transactionMetaRow span,
+.accountSummaryMetaRow span,
+.categorySummaryMetaRow span {
   color: var(--color-text-muted);
   font-size: 0.82rem;
 }
 
 .accountMeta strong,
-.transactionMetaRow strong {
+.transactionMetaRow strong,
+.accountSummaryMetaRow strong,
+.categorySummaryMetaRow strong {
   display: block;
   margin-top: 6px;
   font-size: 1.05rem;
 }
 
-.transactionTopRow {
+.transactionTopRow,
+.accountSummaryTopRow,
+.categorySummaryTopRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
-.transactionMetaRow {
+.transactionMetaRow,
+.accountSummaryMetaRow,
+.categorySummaryMetaRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 18px;
 }
@@ -283,22 +403,14 @@
   padding: 10px 2px;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
 @media (max-width: 1100px) {
-  .summaryGrid {
+  .summaryGrid,
+  .managerialGrid,
+  .comparisonGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .intelligenceGrid,
   .contentGrid {
     grid-template-columns: 1fr;
   }
@@ -312,13 +424,22 @@
   .header,
   .headerActions,
   .accountCard,
+  .accountSummaryTopRow,
+  .categorySummaryTopRow,
   .transactionTopRow {
     flex-direction: column;
   }
 
   .summaryGrid,
-  .skeletonGrid,
+  .managerialGrid,
+  .intelligenceGrid,
+  .comparisonGrid,
   .transactionMetaRow {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSummaryMetaRow,
+  .categorySummaryMetaRow {
     grid-template-columns: 1fr;
   }
 

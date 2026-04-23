@@ -5,12 +5,16 @@ import { ApiError } from "@/services/api-client";
 import {
   createFinancialAccount,
   getFinancialAccounts,
+  inactivateFinancialAccount,
+  updateFinancialAccount,
 } from "@/services/financial-accounts-service";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import type {
   CreateFinancialAccountInput,
   FinancialAccount,
   FinancialAccountType,
+  UpdateFinancialAccountInput,
 } from "@/types/financial-accounts";
 import styles from "./FinancialAccountsPage.module.css";
 
@@ -47,6 +51,8 @@ export function FinancialAccountsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [actionAccountId, setActionAccountId] = useState<string>("");
 
   const loadAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -84,6 +90,21 @@ export function FinancialAccountsPage() {
     setFormState(INITIAL_FORM);
     setSubmitError(null);
     setSubmitSuccess(null);
+    setEditingAccountId(null);
+    setIsModalOpen(true);
+  }
+
+  function handleOpenEditModal(account: FinancialAccount) {
+    setFormState({
+      name: account.name,
+      type: account.type,
+      initialBalance: account.initialBalance,
+      institutionName: account.institutionName ?? "",
+      description: account.description ?? "",
+    });
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    setEditingAccountId(account.id);
     setIsModalOpen(true);
   }
 
@@ -94,6 +115,7 @@ export function FinancialAccountsPage() {
 
     setIsModalOpen(false);
     setSubmitError(null);
+    setEditingAccountId(null);
   }
 
   function handleChange<K extends keyof CreateFinancialAccountInput>(
@@ -124,20 +146,38 @@ export function FinancialAccountsPage() {
     setIsSubmitting(true);
 
     try {
-      const created = await createFinancialAccount({
-        ...formState,
-        institutionName: formState.institutionName?.trim() || undefined,
-        description: formState.description?.trim() || undefined,
-      });
+      if (editingAccountId) {
+        const updated = await updateFinancialAccount(editingAccountId, {
+          name: formState.name.trim(),
+          type: formState.type,
+          institutionName: formState.institutionName?.trim() || undefined,
+          description: formState.description?.trim() || undefined,
+        } satisfies UpdateFinancialAccountInput);
 
-      setAccounts((current) =>
-        [...current, created].sort((left, right) =>
-          left.name.localeCompare(right.name),
-        ),
-      );
-      setSubmitSuccess("Conta criada com sucesso.");
+        setAccounts((current) =>
+          current
+            .map((account) => (account.id === updated.id ? updated : account))
+            .sort((left, right) => left.name.localeCompare(right.name)),
+        );
+        setSubmitSuccess("Conta atualizada com sucesso.");
+      } else {
+        const created = await createFinancialAccount({
+          ...formState,
+          institutionName: formState.institutionName?.trim() || undefined,
+          description: formState.description?.trim() || undefined,
+        });
+
+        setAccounts((current) =>
+          [...current, created].sort((left, right) =>
+            left.name.localeCompare(right.name),
+          ),
+        );
+        setSubmitSuccess("Conta criada com sucesso.");
+      }
+
       setIsModalOpen(false);
       setFormState(INITIAL_FORM);
+      setEditingAccountId(null);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout();
@@ -152,6 +192,33 @@ export function FinancialAccountsPage() {
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleInactivate(account: FinancialAccount) {
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    setActionAccountId(account.id);
+
+    try {
+      const updated = await inactivateFinancialAccount(account.id);
+      setAccounts((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setSubmitSuccess("Conta inativada com sucesso.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        logout();
+        return;
+      }
+
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : "Nao foi possivel inativar a conta agora.",
+      );
+    } finally {
+      setActionAccountId("");
     }
   }
 
@@ -182,7 +249,7 @@ export function FinancialAccountsPage() {
       </header>
 
       <section className={styles.summaryGrid}>
-        <article className={styles.summaryCard}>
+        <article className={`${styles.summaryCard} ${styles.summaryLeadCard}`}>
           <span>Total de contas</span>
           <strong>{accounts.length}</strong>
           <small>Primeiro modulo operacional da fase</small>
@@ -221,37 +288,40 @@ export function FinancialAccountsPage() {
         </div>
 
         {status === "loading" || isLoading ? (
-          <div className={styles.skeletonList}>
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-            <div className={styles.skeletonRow} />
-          </div>
+          <SharedSkeletonRows rows={3} />
         ) : null}
 
         {status !== "loading" && !isLoading && loadError ? (
-          <div className={styles.stateBlock}>
-            <h3>Nao foi possivel carregar suas contas.</h3>
-            <p>{loadError}</p>
-            <button
+          <SharedState
+            tone="error"
+            eyebrow="Falha na leitura"
+            title="Nao foi possivel carregar suas contas."
+            description={loadError}
+            actions={
+              <button
               className={styles.secondaryButton}
               onClick={() => void loadAccounts()}
             >
               Tentar novamente
-            </button>
-          </div>
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && accounts.length === 0 ? (
-          <div className={styles.stateBlock}>
-            <h3>Nenhuma conta cadastrada ainda</h3>
-            <p>
-              Voce ainda nao possui contas cadastradas. Crie sua primeira
-              conta para comecar a registrar movimentacoes.
-            </p>
-            <button className={styles.primaryButton} onClick={handleOpenModal}>
-              Nova conta
-            </button>
-          </div>
+          <SharedState
+            tone="empty"
+            eyebrow="Base estrutural"
+            title="Nenhuma conta cadastrada ainda"
+            description={
+              "Voce ainda nao possui contas cadastradas. Crie sua primeira conta para comecar a registrar movimentacoes."
+            }
+            actions={
+              <button className={styles.primaryButton} onClick={handleOpenModal}>
+                Nova conta
+              </button>
+            }
+          />
         ) : null}
 
         {status !== "loading" && !isLoading && !loadError && accounts.length > 0 ? (
@@ -291,6 +361,23 @@ export function FinancialAccountsPage() {
                 {account.description ? (
                   <p className={styles.accountDescription}>{account.description}</p>
                 ) : null}
+
+                <div className={styles.actionRow}>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => handleOpenEditModal(account)}
+                    disabled={!account.isActive || actionAccountId === account.id}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => void handleInactivate(account)}
+                    disabled={!account.isActive || actionAccountId === account.id}
+                  >
+                    {actionAccountId === account.id ? "Salvando..." : "Inativar"}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -300,15 +387,16 @@ export function FinancialAccountsPage() {
       {isModalOpen ? (
         <div className={styles.modalOverlay} role="presentation">
           <div className={styles.modalCard}>
-            <div className={styles.modalHeader}>
-              <div>
-                <p className={styles.eyebrow}>Nova conta</p>
-                <h2>Cadastre uma conta financeira</h2>
-                <p>
-                  Crie uma conta bancaria, carteira ou conta de investimento
-                  para organizar suas movimentacoes.
-                </p>
-              </div>
+              <div className={styles.modalHeader}>
+                <div>
+                  <p className={styles.eyebrow}>{editingAccountId ? "Editar conta" : "Nova conta"}</p>
+                  <h2>{editingAccountId ? "Atualize uma conta financeira" : "Cadastre uma conta financeira"}</h2>
+                  <p>
+                    {editingAccountId
+                      ? "Ajuste os dados operacionais da conta sem reabrir o saldo inicial."
+                      : "Crie uma conta bancaria, carteira ou conta de investimento para organizar suas movimentacoes."}
+                  </p>
+                </div>
 
               <button className={styles.iconButton} onClick={handleCloseModal}>
                 Fechar
@@ -352,6 +440,7 @@ export function FinancialAccountsPage() {
                     min="0"
                     step="0.01"
                     value={formState.initialBalance}
+                    disabled={Boolean(editingAccountId)}
                     onChange={(event) =>
                       handleChange(
                         "initialBalance",
@@ -404,7 +493,7 @@ export function FinancialAccountsPage() {
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Criando..." : "Criar conta"}
+                  {isSubmitting ? "Salvando..." : editingAccountId ? "Salvar conta" : "Criar conta"}
                 </button>
               </div>
             </form>

@@ -17,3 +17,9 @@ export interface CreateTransactionCategoryInput {
   color?: string;
   icon?: string;
 }
+
+export interface UpdateTransactionCategoryInput {
+  name: string;
+  color?: string;
+  icon?: string;
+}
