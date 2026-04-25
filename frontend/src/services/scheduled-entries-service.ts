@@ -62,6 +62,13 @@ export function completeScheduledEntry(id: string, occurrenceDate: string): Prom
   });
 }
 
+export function undoCompleteScheduledEntry(id: string, occurrenceDate: string): Promise<ScheduledEntry> {
+  return apiRequest<ScheduledEntry>(`/scheduled-entries/${id}/undo-complete`, {
+    method: "POST",
+    body: JSON.stringify({ occurrenceDate }),
+  });
+}
+
 export function skipScheduledEntry(id: string, occurrenceDate: string): Promise<ScheduledEntry> {
   return apiRequest<ScheduledEntry>(`/scheduled-entries/${id}/skip`, {
     method: "POST",

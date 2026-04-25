@@ -107,6 +107,7 @@ public sealed class ScheduledEntryServiceTests
             occurrenceRepository,
             new FakeFinancialAccountRepository(financialAccount),
             new FakeTransactionCategoryRepository(category),
+            new FakeTransactionRepository(),
             new FakeDateTimeProvider(nowUtc));
 
         var result = await service.GetByUserAsync(
@@ -134,6 +135,7 @@ public sealed class ScheduledEntryServiceTests
             new FakeScheduledEntryOccurrenceRepository(),
             new FakeFinancialAccountRepository(accountA, accountB),
             new FakeTransactionCategoryRepository(categoryA, categoryB),
+            new FakeTransactionRepository(),
             new FakeDateTimeProvider(nowUtc));
 
         entry.MarkAsCompleted(nowUtc.AddDays(-1));
@@ -180,6 +182,7 @@ public sealed class ScheduledEntryServiceTests
             occurrenceRepository,
             new FakeFinancialAccountRepository(financialAccount),
             new FakeTransactionCategoryRepository(category),
+            new FakeTransactionRepository(),
             new FakeDateTimeProvider(nowUtc));
 
         var result = await service.CompleteAsync(
@@ -207,6 +210,7 @@ public sealed class ScheduledEntryServiceTests
             new FakeScheduledEntryOccurrenceRepository(),
             new FakeFinancialAccountRepository(financialAccount),
             new FakeTransactionCategoryRepository(category),
+            new FakeTransactionRepository(),
             new FakeDateTimeProvider(nowUtc));
 
         var exception = await Assert.ThrowsAsync<AppValidationException>(() => service.CompleteAsync(
@@ -246,6 +250,7 @@ public sealed class ScheduledEntryServiceTests
             new FakeScheduledEntryOccurrenceRepository(),
             new FakeFinancialAccountRepository(financialAccount),
             new FakeTransactionCategoryRepository(category),
+            new FakeTransactionRepository(),
             new FakeDateTimeProvider(nowUtc));
     }
 
@@ -257,6 +262,56 @@ public sealed class ScheduledEntryServiceTests
         }
 
         public DateTime UtcNow { get; }
+    }
+
+    private sealed class FakeTransactionRepository : ITransactionRepository
+    {
+        private readonly List<Transaction> _transactions = [];
+
+        public Task AddAsync(Transaction transaction, CancellationToken cancellationToken)
+        {
+            _transactions.Add(transaction);
+            return Task.CompletedTask;
+        }
+
+        public Task<Transaction?> GetByUserAndIdAsync(Guid userId, Guid transactionId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                _transactions.FirstOrDefault(x => x.UserId == userId && x.Id == transactionId));
+        }
+
+        public Task<IReadOnlyList<Transaction>> GetByUserAndPeriodAsync(
+            Guid userId,
+            DateOnly from,
+            DateOnly to,
+            TransactionType? type,
+            Guid? financialAccountId,
+            CancellationToken cancellationToken)
+        {
+            IEnumerable<Transaction> query = _transactions.Where(
+                x => x.UserId == userId
+                    && x.OccurredOn >= from
+                    && x.OccurredOn <= to);
+
+            if (type.HasValue)
+            {
+                query = query.Where(x => x.Type == type.Value);
+            }
+
+            if (financialAccountId.HasValue)
+            {
+                query = query.Where(x => x.FinancialAccountId == financialAccountId.Value);
+            }
+
+            return Task.FromResult((IReadOnlyList<Transaction>)query.ToList());
+        }
+
+        public void Remove(Transaction transaction)
+        {
+            _transactions.Remove(transaction);
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FakeScheduledEntryRepository : IScheduledEntryRepository
@@ -399,6 +454,25 @@ public sealed class ScheduledEntryServiceTests
             }
 
             return Task.FromResult((IReadOnlyList<ScheduledEntryOccurrence>)query.ToList());
+        }
+
+        public Task<ScheduledEntryOccurrence?> GetByUserScheduledEntryAndDateAsync(
+            Guid userId,
+            Guid scheduledEntryId,
+            DateOnly occurrenceDate,
+            CancellationToken cancellationToken)
+        {
+            var occurrence = _occurrences.FirstOrDefault(
+                x => x.UserId == userId
+                    && x.ScheduledEntryId == scheduledEntryId
+                    && x.OccurrenceDate == occurrenceDate);
+
+            return Task.FromResult(occurrence);
+        }
+
+        public void Remove(ScheduledEntryOccurrence occurrence)
+        {
+            _occurrences.Remove(occurrence);
         }
     }
 

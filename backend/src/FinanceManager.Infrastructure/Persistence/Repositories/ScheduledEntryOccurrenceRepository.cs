@@ -20,6 +20,19 @@ public sealed class ScheduledEntryOccurrenceRepository : IScheduledEntryOccurren
         return _dbContext.ScheduledEntryOccurrences.AddAsync(occurrence, cancellationToken).AsTask();
     }
 
+    public Task<ScheduledEntryOccurrence?> GetByUserScheduledEntryAndDateAsync(
+        Guid userId,
+        Guid scheduledEntryId,
+        DateOnly occurrenceDate,
+        CancellationToken cancellationToken)
+    {
+        return _dbContext.ScheduledEntryOccurrences.FirstOrDefaultAsync(
+            x => x.UserId == userId
+                && x.ScheduledEntryId == scheduledEntryId
+                && x.OccurrenceDate == occurrenceDate,
+            cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ScheduledEntryOccurrence>> GetByUserAsync(
         Guid userId,
         ScheduledEntryStatus? status,
@@ -49,5 +62,10 @@ public sealed class ScheduledEntryOccurrenceRepository : IScheduledEntryOccurren
             .OrderBy(x => x.OccurrenceDate)
             .ThenByDescending(x => x.CreatedAtUtc)
             .ToListAsync(cancellationToken);
+    }
+
+    public void Remove(ScheduledEntryOccurrence occurrence)
+    {
+        _dbContext.ScheduledEntryOccurrences.Remove(occurrence);
     }
 }

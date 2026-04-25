@@ -103,6 +103,22 @@ public sealed class ScheduledEntriesController : ControllerBase
         return Ok(MapResponse(scheduledEntry));
     }
 
+    [HttpPost("{scheduledEntryId:guid}/undo-complete")]
+    [ProducesResponseType(typeof(ScheduledEntryResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ScheduledEntryResponse>> UndoComplete(
+        Guid scheduledEntryId,
+        [FromBody] ScheduledEntryOccurrenceActionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var scheduledEntry = await _scheduledEntryService.UndoCompleteAsync(
+            new ApplyScheduledEntryOccurrenceActionInput(
+                GetAuthenticatedUserId(),
+                scheduledEntryId,
+                request.OccurrenceDate),
+            cancellationToken);
+        return Ok(MapResponse(scheduledEntry));
+    }
+
     [HttpPost("{scheduledEntryId:guid}/skip")]
     [ProducesResponseType(typeof(ScheduledEntryResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<ScheduledEntryResponse>> Skip(

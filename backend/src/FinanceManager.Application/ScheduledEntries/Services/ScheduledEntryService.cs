@@ -9,10 +9,13 @@ namespace FinanceManager.Application.ScheduledEntries.Services;
 
 public sealed class ScheduledEntryService : IScheduledEntryService
 {
+    private const string PlannedEntryTransactionPrefix = "Planejamento";
+
     private readonly IScheduledEntryRepository _scheduledEntryRepository;
     private readonly IScheduledEntryOccurrenceRepository _scheduledEntryOccurrenceRepository;
     private readonly IFinancialAccountRepository _financialAccountRepository;
     private readonly ITransactionCategoryRepository _transactionCategoryRepository;
+    private readonly ITransactionRepository _transactionRepository;
     private readonly IDateTimeProvider _dateTimeProvider;
 
     public ScheduledEntryService(
@@ -20,12 +23,14 @@ public sealed class ScheduledEntryService : IScheduledEntryService
         IScheduledEntryOccurrenceRepository scheduledEntryOccurrenceRepository,
         IFinancialAccountRepository financialAccountRepository,
         ITransactionCategoryRepository transactionCategoryRepository,
+        ITransactionRepository transactionRepository,
         IDateTimeProvider dateTimeProvider)
     {
         _scheduledEntryRepository = scheduledEntryRepository;
         _scheduledEntryOccurrenceRepository = scheduledEntryOccurrenceRepository;
         _financialAccountRepository = financialAccountRepository;
         _transactionCategoryRepository = transactionCategoryRepository;
+        _transactionRepository = transactionRepository;
         _dateTimeProvider = dateTimeProvider;
     }
 
@@ -174,6 +179,72 @@ public sealed class ScheduledEntryService : IScheduledEntryService
             cancellationToken);
     }
 
+    public async Task<ScheduledEntryDto> UndoCompleteAsync(ApplyScheduledEntryOccurrenceActionInput input, CancellationToken cancellationToken)
+    {
+        if (input.UserId == Guid.Empty)
+        {
+            throw new AppUnauthorizedException("Usuario autenticado nao encontrado para desfazer o realizado.");
+        }
+
+        if (input.ScheduledEntryId == Guid.Empty)
+        {
+            throw new AppValidationException("O lancamento planejado informado e obrigatorio.");
+        }
+
+        if (input.OccurrenceDate == default)
+        {
+            throw new AppValidationException("A competencia informada para desfazer o realizado e obrigatoria.");
+        }
+
+        var scheduledEntry = await _scheduledEntryRepository.GetByUserAndIdAsync(input.UserId, input.ScheduledEntryId, cancellationToken);
+        if (scheduledEntry is null)
+        {
+            throw new AppValidationException("O lancamento planejado informado nao foi encontrado.");
+        }
+
+        var occurrence = await _scheduledEntryOccurrenceRepository.GetByUserScheduledEntryAndDateAsync(
+            input.UserId,
+            input.ScheduledEntryId,
+            input.OccurrenceDate,
+            cancellationToken);
+
+        if (occurrence is null || occurrence.Status != ScheduledEntryStatus.Completed)
+        {
+            throw new AppValidationException("Nao existe um realizado ativo para a competencia informada.");
+        }
+
+        var financialAccount = await RequireFinancialAccountAsync(input.UserId, scheduledEntry.FinancialAccountId, cancellationToken);
+        var category = await RequireCategoryAsync(input.UserId, scheduledEntry.TransactionCategoryId, cancellationToken);
+        var nowUtc = _dateTimeProvider.UtcNow;
+
+        var linkedTransaction = await FindPlannedEntryTransactionAsync(
+            input.UserId,
+            scheduledEntry,
+            input.OccurrenceDate,
+            cancellationToken);
+
+        if (linkedTransaction is not null)
+        {
+            if (linkedTransaction.Type == TransactionType.Income)
+            {
+                financialAccount.ReconcileDelta(-linkedTransaction.Amount, nowUtc);
+            }
+            else
+            {
+                financialAccount.ReconcileDelta(linkedTransaction.Amount, nowUtc);
+            }
+
+            _transactionRepository.Remove(linkedTransaction);
+        }
+
+        scheduledEntry.UndoCompletion(input.OccurrenceDate, nowUtc);
+        _scheduledEntryOccurrenceRepository.Remove(occurrence);
+
+        await _scheduledEntryRepository.SaveChangesAsync(cancellationToken);
+
+        return Map(scheduledEntry, financialAccount.Name, category.Name);
+    }
+
     public Task<ScheduledEntryDto> SkipAsync(ApplyScheduledEntryOccurrenceActionInput input, CancellationToken cancellationToken)
     {
         return ExecuteStateChangeAsync(
@@ -248,9 +319,97 @@ public sealed class ScheduledEntryService : IScheduledEntryService
             occurrenceStatus,
             nowUtc);
         await _scheduledEntryOccurrenceRepository.AddAsync(occurrence, cancellationToken);
+
+        if (occurrenceStatus == ScheduledEntryStatus.Completed)
+        {
+            var transaction = CreateTransactionFromScheduledEntry(
+                scheduledEntry,
+                input.OccurrenceDate,
+                nowUtc);
+
+            if (transaction.Type == TransactionType.Income)
+            {
+                financialAccount.ApplyDelta(transaction.Amount, nowUtc);
+            }
+            else
+            {
+                financialAccount.ApplyDelta(-transaction.Amount, nowUtc);
+            }
+
+            await _transactionRepository.AddAsync(transaction, cancellationToken);
+        }
+
         await _scheduledEntryRepository.SaveChangesAsync(cancellationToken);
 
         return Map(scheduledEntry, financialAccount.Name, category.Name);
+    }
+
+    private Transaction CreateTransactionFromScheduledEntry(
+        ScheduledEntry scheduledEntry,
+        DateOnly occurrenceDate,
+        DateTime nowUtc)
+    {
+        var description = BuildPlannedEntryTransactionDescription(
+            scheduledEntry.Description,
+            scheduledEntry.TransactionCategoryId,
+            occurrenceDate);
+
+        return scheduledEntry.Type == TransactionType.Income
+            ? Transaction.CreateIncome(
+                scheduledEntry.UserId,
+                scheduledEntry.FinancialAccountId,
+                scheduledEntry.TransactionCategoryId,
+                scheduledEntry.Amount,
+                occurrenceDate,
+                description,
+                nowUtc)
+            : Transaction.CreateExpense(
+                scheduledEntry.UserId,
+                scheduledEntry.FinancialAccountId,
+                scheduledEntry.TransactionCategoryId,
+                scheduledEntry.Amount,
+                occurrenceDate,
+                description,
+                nowUtc);
+    }
+
+    private async Task<Transaction?> FindPlannedEntryTransactionAsync(
+        Guid userId,
+        ScheduledEntry scheduledEntry,
+        DateOnly occurrenceDate,
+        CancellationToken cancellationToken)
+    {
+        var expectedDescription = BuildPlannedEntryTransactionDescription(
+            scheduledEntry.Description,
+            scheduledEntry.TransactionCategoryId,
+            occurrenceDate);
+
+        var transactions = await _transactionRepository.GetByUserAndPeriodAsync(
+            userId,
+            occurrenceDate,
+            occurrenceDate,
+            scheduledEntry.Type,
+            scheduledEntry.FinancialAccountId,
+            cancellationToken);
+
+        return transactions
+            .Where(transaction => transaction.TransactionCategoryId == scheduledEntry.TransactionCategoryId)
+            .Where(transaction => transaction.Amount == scheduledEntry.Amount)
+            .Where(transaction => transaction.Description == expectedDescription)
+            .OrderByDescending(transaction => transaction.CreatedAtUtc)
+            .FirstOrDefault();
+    }
+
+    private static string BuildPlannedEntryTransactionDescription(
+        string? baseDescription,
+        Guid transactionCategoryId,
+        DateOnly occurrenceDate)
+    {
+        var normalizedBaseDescription = string.IsNullOrWhiteSpace(baseDescription)
+            ? "Lancamento previsto"
+            : baseDescription.Trim();
+
+        return $"{PlannedEntryTransactionPrefix}: {normalizedBaseDescription} | {occurrenceDate:yyyy-MM-dd} | {transactionCategoryId:D}";
     }
 
     private async Task<FinancialAccount> RequireFinancialAccountAsync(Guid userId, Guid financialAccountId, CancellationToken cancellationToken)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { SharedSkeletonRows, SharedState } from "@/features/shared-state/SharedState";
 import type { FinancialAccount } from "@/types/financial-accounts";
+import type { Invoice } from "@/types/invoices";
 import type { TransactionCategory } from "@/types/transaction-categories";
 import type {
   CreateScheduledEntryInput,
@@ -21,14 +22,16 @@ import {
   completeScheduledEntry,
   createScheduledEntry,
   getScheduledEntries,
-  skipScheduledEntry,
+  undoCompleteScheduledEntry,
   updateScheduledEntry,
 } from "@/services/scheduled-entries-service";
+import { getInvoices, payInvoice } from "@/services/invoices-service";
 import { getTransactionCategories } from "@/services/transaction-categories-service";
 import styles from "./ScheduledEntriesPage.module.css";
 
 type FiltersState = {
   status: "" | ScheduledEntryStatus;
+  month: string;
   from: string;
   to: string;
 };
@@ -39,6 +42,30 @@ type CalendarRange = {
 };
 
 type CalendarViewMode = "month" | "week";
+
+type PlanningDayItem =
+  | {
+    kind: "scheduled";
+    key: string;
+    date: string;
+    title: string;
+    subtitle: string;
+    amount: number;
+    type: ScheduledEntryType;
+    status: ScheduledEntryStatus;
+    entry: ScheduledEntryOccurrence;
+  }
+  | {
+    kind: "invoice";
+    key: string;
+    date: string;
+    title: string;
+    subtitle: string;
+    amount: number;
+    type: "expense";
+    status: Invoice["status"];
+    invoice: Invoice;
+  };
 
 const STATUS_LABELS: Record<ScheduledEntryStatus, string> = {
   scheduled: "Agendado",
@@ -57,6 +84,12 @@ const MODE_LABELS: Record<ScheduledEntryPlanningMode, string> = {
   recurring: "Recorrente",
 };
 
+const FINANCIAL_ACCOUNT_TYPE_LABELS: Record<FinancialAccount["type"], string> = {
+  bank_account: "Conta bancaria",
+  wallet: "Carteira",
+  investment_account: "Investimento",
+};
+
 const FREQUENCY_LABELS: Record<ScheduledEntryRecurrenceFrequency, string> = {
   weekly: "Semanal",
   monthly: "Mensal",
@@ -69,19 +102,37 @@ function dateInput(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function monthInput(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  return `${year}-${month}`;
+}
+
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
 }
 
-function createInitialFilters(): FiltersState {
-  const now = new Date();
+function buildMonthFilters(monthValue: string): FiltersState {
+  const referenceDate = new Date(`${monthValue}-01T00:00:00`);
   return {
-    status: "scheduled",
-    from: dateInput(now),
-    to: dateInput(addDays(now, 90)),
+    status: "",
+    month: monthValue,
+    from: dateInput(startOfMonth(referenceDate)),
+    to: dateInput(endOfMonth(referenceDate)),
   };
+}
+
+function createInitialFilters(): FiltersState {
+  return buildMonthFilters(monthInput(new Date()));
+}
+
+function defaultSelectedDateForMonth(monthValue: string) {
+  const today = new Date();
+  return monthInput(today) === monthValue
+    ? dateInput(today)
+    : `${monthValue}-01`;
 }
 
 function createInitialForm(): CreateScheduledEntryInput {
@@ -132,6 +183,10 @@ function formatMonthLabel(value: string) {
     month: "long",
     year: "numeric",
   }).format(new Date(`${value}-01T00:00:00`));
+}
+
+function formatReferenceMonth(year: number, month: number) {
+  return `${`${month}`.padStart(2, "0")}/${year}`;
 }
 
 function startOfWeek(date: Date) {
@@ -279,9 +334,10 @@ function severityLabel(score: number) {
 }
 
 export function ScheduledEntriesPage() {
-  const { logout, status, user } = useAuth();
+  const { logout, status } = useAuth();
   const [filters, setFilters] = useState<FiltersState>(createInitialFilters);
   const [scheduledEntries, setScheduledEntries] = useState<ScheduledEntryOccurrence[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [financialAccounts, setFinancialAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<TransactionCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -296,6 +352,10 @@ export function ScheduledEntriesPage() {
   const [calendarViewMode, setCalendarViewMode] = useState<CalendarViewMode>("month");
   const [calendarReferenceDate, setCalendarReferenceDate] = useState<Date>(() => new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(() => dateInput(new Date()));
+  const [selectedCalendarPage, setSelectedCalendarPage] = useState(1);
+  const [scheduledEntryPendingCancel, setScheduledEntryPendingCancel] = useState<ScheduledEntryOccurrence | null>(null);
+  const [invoicePaymentTarget, setInvoicePaymentTarget] = useState<Invoice | null>(null);
+  const [invoicePaymentAccountId, setInvoicePaymentAccountId] = useState("");
 
   const activeAccounts = useMemo(
     () => financialAccounts.filter((account) => account.isActive),
@@ -306,14 +366,63 @@ export function ScheduledEntriesPage() {
     [categories],
   );
   const hasOperationalBase = activeAccounts.length > 0 && activeCategories.length > 0;
+  const selectedInvoicePaymentAccount = useMemo(
+    () => activeAccounts.find((account) => account.id === invoicePaymentAccountId) ?? null,
+    [activeAccounts, invoicePaymentAccountId],
+  );
 
   const filteredEntries = useMemo(
     () =>
       scheduledEntries
         .filter((entry) => !filters.status || entry.status === filters.status)
+        .filter((entry) => entry.status !== "cancelled")
         .filter((entry) => !filters.from || entry.occurrenceDate >= filters.from)
         .filter((entry) => !filters.to || entry.occurrenceDate <= filters.to),
     [scheduledEntries, filters],
+  );
+
+  const invoicePlanningItems = useMemo(
+    () =>
+      invoices
+        .filter((invoice) => invoice.status === "open" || invoice.status === "partiallyPaid")
+        .filter((invoice) => invoice.dueDate >= filters.from && invoice.dueDate <= filters.to)
+        .map<PlanningDayItem>((invoice) => ({
+          kind: "invoice",
+          key: `invoice-${invoice.id}`,
+          date: invoice.dueDate,
+          title: `Fatura ${invoice.creditCardName}`,
+          subtitle: `Cartao de credito | Ref. ${formatReferenceMonth(invoice.referenceYear, invoice.referenceMonth)}`,
+          amount: invoice.remainingAmount,
+          type: "expense",
+          status: invoice.status,
+          invoice,
+        })),
+    [filters.from, filters.to, invoices],
+  );
+
+  const planningItems = useMemo(
+    () => {
+      const scheduledItems = filteredEntries.map<PlanningDayItem>((entry) => ({
+        kind: "scheduled",
+        key: entry.occurrenceKey,
+        date: entry.occurrenceDate,
+        title: entry.description ?? entry.transactionCategoryName,
+        subtitle: `${entry.transactionCategoryName} | ${entry.financialAccountName}`,
+        amount: entry.amount,
+        type: entry.type,
+        status: entry.status,
+        entry,
+      }));
+
+      return [...scheduledItems, ...invoicePlanningItems].sort((left, right) => {
+        if (left.date !== right.date) {
+          return left.date.localeCompare(right.date);
+        }
+
+        return left.title.localeCompare(right.title);
+      });
+    },
+    [filteredEntries, invoicePlanningItems],
   );
 
   const upcomingSummary = useMemo(() => {
@@ -508,14 +617,13 @@ export function ScheduledEntriesPage() {
 
   const calendarEntriesByDate = useMemo(
     () =>
-      scheduledEntries
-        .reduce<Map<string, ScheduledEntryOccurrence[]>>((acc, entry) => {
-          const current = acc.get(entry.occurrenceDate) ?? [];
-          current.push(entry);
-          acc.set(entry.occurrenceDate, [...current].sort((left, right) => left.amount - right.amount));
-          return acc;
-        }, new Map()),
-    [scheduledEntries],
+      planningItems.reduce<Map<string, PlanningDayItem[]>>((acc, entry) => {
+        const current = acc.get(entry.date) ?? [];
+        current.push(entry);
+        acc.set(entry.date, [...current].sort((left, right) => left.amount - right.amount));
+        return acc;
+      }, new Map()),
+    [planningItems],
   );
 
   const visibleCalendarDays = useMemo(() => {
@@ -531,6 +639,7 @@ export function ScheduledEntriesPage() {
           key: toDateKey(date),
           isCurrentMonth: true,
           isToday: isSameDay(date, today),
+          isPast: date < today && !isSameDay(date, today),
           entries: calendarEntriesByDate.get(toDateKey(date)) ?? [],
         };
       });
@@ -549,6 +658,7 @@ export function ScheduledEntriesPage() {
         key: toDateKey(date),
         isCurrentMonth: date.getMonth() === baseDate.getMonth(),
         isToday: isSameDay(date, today),
+        isPast: date < today && !isSameDay(date, today),
         entries: calendarEntriesByDate.get(toDateKey(date)) ?? [],
       };
     });
@@ -585,6 +695,34 @@ export function ScheduledEntriesPage() {
     [selectedCalendarEntries],
   );
 
+  const monthlyProjection = useMemo(() => ({
+    incomeAmount: planningItems
+      .filter((entry) => entry.type === "income")
+      .reduce((sum, entry) => sum + entry.amount, 0),
+    expenseAmount: planningItems
+      .filter((entry) => entry.type === "expense")
+      .reduce((sum, entry) => sum + entry.amount, 0),
+    incomeCount: planningItems.filter((entry) => entry.type === "income").length,
+    expenseCount: planningItems.filter((entry) => entry.type === "expense").length,
+  }), [planningItems]);
+
+  const selectedCalendarTotalPages = Math.max(1, Math.ceil(selectedCalendarEntries.length / 5));
+
+  const paginatedSelectedCalendarEntries = useMemo(() => {
+    const startIndex = (selectedCalendarPage - 1) * 5;
+    return selectedCalendarEntries.slice(startIndex, startIndex + 5);
+  }, [selectedCalendarEntries, selectedCalendarPage]);
+
+  useEffect(() => {
+    setSelectedCalendarPage(1);
+  }, [selectedCalendarDate, filters.month]);
+
+  useEffect(() => {
+    if (selectedCalendarPage > selectedCalendarTotalPages) {
+      setSelectedCalendarPage(selectedCalendarTotalPages);
+    }
+  }, [selectedCalendarPage, selectedCalendarTotalPages]);
+
   const entriesByStatus = useMemo(
     () =>
       filteredEntries.reduce(
@@ -605,8 +743,8 @@ export function ScheduledEntriesPage() {
   const loadPageData = useCallback(
     async (
       nextFilters: FiltersState,
-      nextCalendarReferenceDate: Date = calendarReferenceDate,
-      nextCalendarViewMode: CalendarViewMode = calendarViewMode,
+      nextCalendarReferenceDate: Date,
+      nextCalendarViewMode: CalendarViewMode,
     ) => {
       setIsLoading(true);
       setLoadError(null);
@@ -615,7 +753,7 @@ export function ScheduledEntriesPage() {
         const calendarRange = getCalendarRange(nextCalendarReferenceDate, nextCalendarViewMode);
         const effectiveFrom = minDateValue(nextFilters.from, calendarRange.from);
         const effectiveTo = maxDateValue(nextFilters.to, calendarRange.to);
-        const [accountsData, categoriesData, entriesData] = await Promise.all([
+        const [accountsData, categoriesData, entriesData, invoicesData] = await Promise.all([
           getFinancialAccounts(),
           getTransactionCategories(),
           getScheduledEntries({
@@ -623,11 +761,13 @@ export function ScheduledEntriesPage() {
             from: effectiveFrom || undefined,
             to: effectiveTo || undefined,
           }),
+          getInvoices(),
         ]);
 
         setFinancialAccounts(accountsData);
         setCategories(categoriesData);
         setScheduledEntries(entriesData);
+        setInvoices(invoicesData);
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           logout();
@@ -643,7 +783,7 @@ export function ScheduledEntriesPage() {
         setIsLoading(false);
       }
     },
-    [calendarReferenceDate, calendarViewMode, logout],
+    [logout],
   );
 
   useEffect(() => {
@@ -652,8 +792,12 @@ export function ScheduledEntriesPage() {
     }
 
     const nextFilters = createInitialFilters();
+    const nextReferenceDate = new Date(`${nextFilters.month}-01T00:00:00`);
     setFilters(nextFilters);
-    void loadPageData(nextFilters);
+    setCalendarReferenceDate(nextReferenceDate);
+    setCalendarViewMode("month");
+    setSelectedCalendarDate(defaultSelectedDateForMonth(nextFilters.month));
+    void loadPageData(nextFilters, nextReferenceDate, "month");
   }, [status, loadPageData]);
 
   function openModal() {
@@ -714,14 +858,15 @@ export function ScheduledEntriesPage() {
     }));
   }
 
-  function updateCalendarView(
-    nextReferenceDate: Date,
-    nextViewMode: CalendarViewMode = calendarViewMode,
-  ) {
+  function updateCalendarView(nextReferenceDate: Date) {
+    const monthValue = monthInput(nextReferenceDate);
+    const nextFilters = buildMonthFilters(monthValue);
+
+    setFilters(nextFilters);
     setCalendarReferenceDate(nextReferenceDate);
-    setCalendarViewMode(nextViewMode);
-    setSelectedCalendarDate(toDateKey(nextReferenceDate));
-    void loadPageData(filters, nextReferenceDate, nextViewMode);
+    setCalendarViewMode("month");
+    setSelectedCalendarDate(defaultSelectedDateForMonth(monthValue));
+    void loadPageData(nextFilters, nextReferenceDate, "month");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -786,7 +931,7 @@ export function ScheduledEntriesPage() {
 
       setIsModalOpen(false);
       setEditingScheduledEntryId(null);
-      await loadPageData(filters);
+      await loadPageData(filters, calendarReferenceDate, calendarViewMode);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout();
@@ -805,7 +950,7 @@ export function ScheduledEntriesPage() {
 
   async function handleEntryAction(
     entry: ScheduledEntryOccurrence,
-    action: "complete" | "skip" | "cancel",
+    action: "complete" | "undo-complete" | "cancel",
   ) {
     setSubmitError(null);
     setSubmitSuccess(null);
@@ -817,9 +962,9 @@ export function ScheduledEntriesPage() {
         setSubmitSuccess("Previsto tratado como realizado com sucesso.");
       }
 
-      if (action === "skip") {
-        await skipScheduledEntry(entry.scheduledEntryId, entry.occurrenceDate);
-        setSubmitSuccess("Previsto ignorado com sucesso.");
+      if (action === "undo-complete") {
+        await undoCompleteScheduledEntry(entry.scheduledEntryId, entry.occurrenceDate);
+        setSubmitSuccess("Realizado desfeito com sucesso.");
       }
 
       if (action === "cancel") {
@@ -827,7 +972,7 @@ export function ScheduledEntriesPage() {
         setSubmitSuccess("Previsto cancelado com sucesso.");
       }
 
-      await loadPageData(filters);
+      await loadPageData(filters, calendarReferenceDate, calendarViewMode);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout();
@@ -844,26 +989,70 @@ export function ScheduledEntriesPage() {
     }
   }
 
+  function handleInvoiceEdit(invoiceId: string) {
+    window.location.href = `/invoices?invoiceId=${invoiceId}`;
+  }
+
+  function handleOpenInvoicePayment(invoice: Invoice) {
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    setInvoicePaymentTarget(invoice);
+    setInvoicePaymentAccountId(activeAccounts[0]?.id ?? "");
+  }
+
+  function closeInvoicePaymentModal() {
+    setInvoicePaymentTarget(null);
+    setInvoicePaymentAccountId("");
+  }
+
+  async function handleConfirmInvoicePayment() {
+    if (!invoicePaymentTarget) {
+      return;
+    }
+
+    if (!invoicePaymentAccountId) {
+      setSubmitError("Selecione a conta que sera usada no pagamento da fatura.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      await payInvoice(invoicePaymentTarget.id, {
+        financialAccountId: invoicePaymentAccountId,
+        amount: invoicePaymentTarget.remainingAmount,
+      });
+
+      closeInvoicePaymentModal();
+      setSubmitSuccess("Fatura paga com sucesso.");
+      await loadPageData(filters, calendarReferenceDate, calendarViewMode);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        logout();
+        return;
+      }
+
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : "Nao foi possivel pagar a fatura agora.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className={styles.main}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Fase 4</p>
+          <p className={styles.eyebrow}>Planejamento Financeiro</p>
           <h1>Planejamento financeiro</h1>
-          <p className={styles.subtitle}>
-            Organize compromissos futuros, recorrencias simples e o que ainda
-            precisa acontecer sem confundir previsao com transacao real.
-          </p>
         </div>
 
         <div className={styles.headerActions}>
-          <div className={styles.userBadge}>
-            <span>Usuario autenticado</span>
-            <strong>{user?.fullName ?? "Sessao ativa"}</strong>
-          </div>
-          <button className={styles.secondaryButton} onClick={logout}>
-            Sair
-          </button>
           <button
             className={styles.primaryButton}
             onClick={openModal}
@@ -876,333 +1065,24 @@ export function ScheduledEntriesPage() {
 
       <section className={styles.summaryGrid}>
         <article className={styles.summaryCard}>
-          <span>Agendados ativos</span>
-          <strong>{upcomingSummary.scheduledCount}</strong>
-          <small>Compromissos futuros sob controle</small>
+          <div className={styles.summaryCardHeader}>
+            <span>Projecao de receitas</span>
+            <span className={styles.summaryAccent}>{formatMonthLabel(filters.month)}</span>
+          </div>
+          <strong className={styles.forecastPositive}>
+            {formatCurrency(monthlyProjection.incomeAmount)}
+          </strong>
+          <small>{monthlyProjection.incomeCount} previsto(s) de receita no mes selecionado</small>
         </article>
         <article className={styles.summaryCard}>
-          <span>Proximos 7 dias</span>
-          <strong>{upcomingSummary.nextSevenDaysCount}</strong>
-          <small>O que precisa acontecer em breve</small>
-        </article>
-        <article className={styles.summaryCard}>
-          <span>Recorrentes</span>
-          <strong>{upcomingSummary.recurringCount}</strong>
-          <small>Base viva do planejamento operacional</small>
-        </article>
-        <article className={styles.summaryCard}>
-          <span>Valor previsto</span>
-          <strong>{formatCurrency(upcomingSummary.totalScheduledAmount)}</strong>
-          <small>Somatorio dos itens agendados filtrados</small>
-        </article>
-      </section>
-
-      <section className={styles.statusStrip}>
-        <div className={styles.statusPill}>
-          <span>Agendados</span>
-          <strong>{entriesByStatus.scheduled}</strong>
-        </div>
-        <div className={styles.statusPill}>
-          <span>Realizados</span>
-          <strong>{entriesByStatus.completed}</strong>
-        </div>
-        <div className={styles.statusPill}>
-          <span>Ignorados</span>
-          <strong>{entriesByStatus.skipped}</strong>
-        </div>
-        <div className={styles.statusPill}>
-          <span>Cancelados</span>
-          <strong>{entriesByStatus.cancelled}</strong>
-        </div>
-      </section>
-
-      <section className={styles.forecastGrid}>
-        <article className={styles.forecastCard}>
-          <div className={styles.forecastCardHeader}>
-            <div>
-              <span className={styles.horizonEyebrow}>Previsao operacional</span>
-              <h2>Saldo previsto do periodo</h2>
-            </div>
-            <strong className={operationalForecast.netAmount >= 0 ? styles.forecastPositive : styles.forecastNegative}>
-              {formatCurrency(operationalForecast.netAmount)}
-            </strong>
+          <div className={styles.summaryCardHeader}>
+            <span>Projecao de despesas</span>
+            <span className={styles.summaryAccent}>{formatMonthLabel(filters.month)}</span>
           </div>
-          <p className={styles.forecastText}>
-            Diferenca entre receitas e despesas ainda agendadas dentro do recorte atual.
-          </p>
-          <div className={styles.forecastSplit}>
-            <div className={styles.forecastMetric}>
-              <span>Receitas previstas</span>
-              <strong>{formatCurrency(operationalForecast.incomeAmount)}</strong>
-            </div>
-            <div className={styles.forecastMetric}>
-              <span>Despesas previstas</span>
-              <strong>{formatCurrency(operationalForecast.expenseAmount)}</strong>
-            </div>
-          </div>
-        </article>
-
-        <article className={styles.forecastCard}>
-          <div className={styles.forecastCardHeader}>
-            <div>
-              <span className={styles.horizonEyebrow}>Leitura do tratamento</span>
-              <h2>Ritmo operacional</h2>
-            </div>
-            <strong>{operationalForecast.completionRate}%</strong>
-          </div>
-          <p className={styles.forecastText}>
-            Percentual dos itens do recorte atual que ja foram tratados como realizados, ignorados ou cancelados.
-          </p>
-          <div className={styles.forecastSplit}>
-            <div className={styles.forecastMetric}>
-              <span>Itens tratados</span>
-              <strong>{operationalForecast.treatedCount}</strong>
-            </div>
-            <div className={styles.forecastMetric}>
-              <span>Ainda agendados</span>
-              <strong>{entriesByStatus.scheduled}</strong>
-            </div>
-          </div>
-        </article>
-
-        <article className={styles.forecastCard}>
-          <div className={styles.forecastCardHeader}>
-            <div>
-              <span className={styles.horizonEyebrow}>Concentracao futura</span>
-              <h2>Mes de maior pressao</h2>
-            </div>
-            <strong>
-              {operationalForecast.peakExpenseMonth
-                ? formatCurrency(operationalForecast.peakExpenseMonth.expenseAmount)
-                : "Sem leitura"}
-            </strong>
-          </div>
-          <p className={styles.forecastText}>
-            {operationalForecast.peakExpenseMonth
-              ? `${operationalForecast.peakExpenseMonth.label} concentra o maior volume de despesas agendadas no recorte.`
-              : "Ainda nao ha despesas agendadas suficientes para destacar um mes de maior carga."}
-          </p>
-          <div className={styles.forecastSplit}>
-            <div className={styles.forecastMetric}>
-              <span>Mes destacado</span>
-              <strong>{operationalForecast.peakExpenseMonth?.label ?? "Sem mes"}</strong>
-            </div>
-            <div className={styles.forecastMetric}>
-              <span>Itens no mes</span>
-              <strong>{operationalForecast.peakExpenseMonth?.entriesCount ?? 0}</strong>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className={styles.forecastBoard}>
-        <div className={styles.listHeader}>
-          <div>
-            <h2>Projecao mensal simples</h2>
-            <p>
-              Veja como receitas, despesas e saldo previsto se distribuem pelos proximos meses dentro do recorte atual.
-            </p>
-          </div>
-        </div>
-
-        {operationalForecast.monthlyForecast.length > 0 ? (
-          <div className={styles.forecastMonthGrid}>
-            {operationalForecast.monthlyForecast.slice(0, 6).map((month) => (
-              <article className={styles.forecastMonthCard} key={month.month}>
-                <div className={styles.forecastMonthHeader}>
-                  <div>
-                    <h3>{month.label}</h3>
-                    <p>{month.entriesCount} ocorrencia(s) agendada(s)</p>
-                  </div>
-                  <strong className={month.netAmount >= 0 ? styles.forecastPositive : styles.forecastNegative}>
-                    {formatCurrency(month.netAmount)}
-                  </strong>
-                </div>
-                <div className={styles.forecastMonthMetrics}>
-                  <div className={styles.forecastMetric}>
-                    <span>Receitas</span>
-                    <strong>{formatCurrency(month.incomeAmount)}</strong>
-                  </div>
-                  <div className={styles.forecastMetric}>
-                    <span>Despesas</span>
-                    <strong>{formatCurrency(month.expenseAmount)}</strong>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.focusEmpty}>
-            Ainda nao ha ocorrencias agendadas suficientes no recorte para montar uma projecao mensal.
-          </div>
-        )}
-      </section>
-
-      <section className={styles.monthDecisionGrid}>
-        <article className={styles.monthDecisionCard}>
-          <div className={styles.listHeader}>
-            <div>
-              <h2>Meses criticos</h2>
-              <p>
-                Destaques de meses que pedem mais atencao por saldo negativo, carga elevada ou concentracao de ocorrencias.
-              </p>
-            </div>
-          </div>
-
-          {operationalForecast.criticalMonths.length > 0 ? (
-            <div className={styles.monthDecisionList}>
-              {operationalForecast.criticalMonths.slice(0, 4).map((month) => (
-                <article
-                  className={`${styles.monthDecisionItem} ${
-                    month.netAmount < 0 ? styles.monthDecisionItemAlert : styles.monthDecisionItemWarm
-                  }`}
-                  key={month.month}
-                >
-                  <div className={styles.monthDecisionHeader}>
-                    <div>
-                      <h3>{month.label}</h3>
-                      <p>Severidade {month.severityLabel}</p>
-                    </div>
-                    <strong className={month.netAmount >= 0 ? styles.forecastPositive : styles.forecastNegative}>
-                      {formatCurrency(month.netAmount)}
-                    </strong>
-                  </div>
-                  <div className={styles.monthDecisionMetrics}>
-                    <span>Carga de despesas: {month.loadShare}%</span>
-                    <span>Ocorrencias: {month.entriesCount}</span>
-                    <span>Receitas: {formatCurrency(month.incomeAmount)}</span>
-                    <span>Despesas: {formatCurrency(month.expenseAmount)}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.focusEmpty}>
-              Nenhum mes do recorte atual apresenta sinal critico relevante.
-            </div>
-          )}
-        </article>
-
-        <article className={styles.monthDecisionCard}>
-          <div className={styles.listHeader}>
-            <div>
-              <h2>Prioridades operacionais</h2>
-              <p>
-                Ordem simples do que merece decisao agora para manter o planejamento controlado.
-              </p>
-            </div>
-          </div>
-
-          {operationalForecast.operationalPriorities.length > 0 ? (
-            <div className={styles.priorityList}>
-              {operationalForecast.operationalPriorities.map((priority) => (
-                <div className={styles.priorityItem} key={priority}>
-                  <strong>Prioridade</strong>
-                  <p>{priority}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.focusEmpty}>
-              Nenhuma prioridade operacional adicional foi identificada no recorte atual.
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className={styles.horizonGrid}>
-        <article className={styles.horizonCard}>
-          <div className={styles.horizonHeader}>
-            <div>
-              <span className={styles.horizonEyebrow}>Radar imediato</span>
-              <h2>O que pede atencao agora</h2>
-            </div>
-            <strong>{futureFocus.dueToday.length + futureFocus.nextThreeDays.length + futureFocus.overdue.length}</strong>
-          </div>
-
-          <div className={styles.horizonBuckets}>
-            <div className={styles.horizonBucket}>
-              <span>Hoje</span>
-              <strong>{futureFocus.dueToday.length}</strong>
-              <small>Compromissos que vencem hoje</small>
-            </div>
-            <div className={styles.horizonBucket}>
-              <span>Proximos 3 dias</span>
-              <strong>{futureFocus.nextThreeDays.length}</strong>
-              <small>Janela curta de decisao</small>
-            </div>
-            <div className={styles.horizonBucket}>
-              <span>Em atraso</span>
-              <strong>{futureFocus.overdue.length}</strong>
-              <small>Itens que pedem revisao operacional</small>
-            </div>
-          </div>
-
-          <div className={styles.focusList}>
-            {[...futureFocus.overdue, ...futureFocus.dueToday, ...futureFocus.nextThreeDays]
-              .slice(0, 5)
-              .map((entry) => {
-                const diff = daysUntil(entry.occurrenceDate);
-                const toneClass = diff !== null && diff < 0
-                  ? styles.focusItemAlert
-                  : diff === 0
-                    ? styles.focusItemToday
-                    : styles.focusItemSoon;
-
-                return (
-                  <article className={`${styles.focusItem} ${toneClass}`} key={entry.occurrenceKey}>
-                    <div>
-                      <h3>{entry.description ?? entry.transactionCategoryName}</h3>
-                      <p>{entry.financialAccountName} | {TYPE_LABELS[entry.type]} | {formatDate(entry.occurrenceDate)}</p>
-                    </div>
-                    <strong>{formatCurrency(entry.amount)}</strong>
-                  </article>
-                );
-              })}
-            {futureFocus.dueToday.length + futureFocus.nextThreeDays.length + futureFocus.overdue.length === 0 ? (
-              <div className={styles.focusEmpty}>
-                Nenhum item sensivel no curtissimo prazo dentro dos filtros atuais.
-              </div>
-            ) : null}
-          </div>
-        </article>
-
-        <article className={styles.horizonCard}>
-          <div className={styles.horizonHeader}>
-            <div>
-              <span className={styles.horizonEyebrow}>Leitura do futuro</span>
-              <h2>Horizonte por mes</h2>
-            </div>
-            <strong>{monthGroups.length}</strong>
-          </div>
-
-          <div className={styles.monthBoard}>
-            {monthGroups.slice(0, 4).map((group) => (
-              <article className={styles.monthCard} key={group.month}>
-                <div className={styles.monthCardHeader}>
-                  <div>
-                    <h3>{group.label}</h3>
-                    <p>{group.entries.length} previsto(s) ativos</p>
-                  </div>
-                  <strong>{formatCurrency(group.totalAmount)}</strong>
-                </div>
-                <div className={styles.monthCardList}>
-                  {group.entries.slice(0, 3).map((entry) => (
-                    <div className={styles.monthCardItem} key={entry.occurrenceKey}>
-                      <span>{formatDate(entry.occurrenceDate)}</span>
-                      <strong>{entry.description ?? entry.transactionCategoryName}</strong>
-                      <small>{entry.financialAccountName}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-            {monthGroups.length === 0 ? (
-              <div className={styles.focusEmpty}>
-                Ainda nao ha recorrencias ou previstos ativos organizados no horizonte mensal.
-              </div>
-            ) : null}
-          </div>
+          <strong className={styles.forecastNegative}>
+            {formatCurrency(monthlyProjection.expenseAmount)}
+          </strong>
+          <small>{monthlyProjection.expenseCount} previsto(s) de despesa no mes selecionado</small>
         </article>
       </section>
 
@@ -1231,118 +1111,66 @@ export function ScheduledEntriesPage() {
       ) : null}
 
       <section className={styles.filtersCard}>
-        <form
-          className={styles.filtersForm}
-          onSubmit={async (event) => {
-            event.preventDefault();
-            await loadPageData(filters);
-          }}
-        >
-          <label className={styles.field}>
-            <span>Status</span>
-            <select
-              value={filters.status}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  status: event.target.value as FiltersState["status"],
-                }))
-              }
-            >
-              <option value="">Todos</option>
-              <option value="scheduled">Agendado</option>
-              <option value="completed">Realizado</option>
-              <option value="skipped">Ignorado</option>
-              <option value="cancelled">Cancelado</option>
-            </select>
-          </label>
-
-          <label className={styles.field}>
-            <span>De</span>
-            <input
-              type="date"
-              value={filters.from}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  from: event.target.value,
-                }))
-              }
-            />
-          </label>
-
-          <label className={styles.field}>
-            <span>Ate</span>
-            <input
-              type="date"
-              value={filters.to}
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  to: event.target.value,
-                }))
-              }
-            />
-          </label>
-
-          <div className={styles.filterActions}>
-            <button
-              className={styles.secondaryButton}
-              type="button"
-              onClick={() => {
-                const next = createInitialFilters();
-                setFilters(next);
-                void loadPageData(next);
-              }}
-            >
-              Resetar
-            </button>
-            <button className={styles.primaryButton} type="submit">
-              Aplicar filtros
-            </button>
+        <div className={styles.filtersHeader}>
+          <div>
+            <h2>Filtro mensal</h2>
           </div>
-        </form>
+        </div>
+        <div className={styles.toolbarActions}>
+          <label className={styles.toolbarField}>
+            <span>Mes de projecao</span>
+            <input
+              className={styles.toolbarInput}
+              type="month"
+              value={filters.month}
+              onChange={(event) => {
+                const nextFilters = buildMonthFilters(event.target.value);
+                const nextReferenceDate = new Date(`${nextFilters.month}-01T00:00:00`);
+
+                setFilters(nextFilters);
+                setCalendarReferenceDate(nextReferenceDate);
+                setCalendarViewMode("month");
+                setSelectedCalendarDate(defaultSelectedDateForMonth(nextFilters.month));
+                void loadPageData(nextFilters, nextReferenceDate, "month");
+              }}
+            />
+          </label>
+        </div>
       </section>
 
-      <section className={styles.calendarCard}>
-        <div className={styles.calendarHeader}>
-          <div>
-            <p className={styles.calendarEyebrow}>Calendario simples</p>
-            <h2>{calendarTitle}</h2>
-            <p>
-              Distribua os previstos no tempo com uma visao semanal ou mensal,
-              mantendo o mesmo backend e a mesma base operacional do modulo.
-            </p>
-          </div>
+      {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
 
-          <div className={styles.calendarToolbar}>
-            <div className={styles.calendarModeSwitch}>
-              <button
-                className={calendarViewMode === "week" ? styles.calendarModeActive : styles.secondaryButton}
-                type="button"
-                onClick={() => updateCalendarView(calendarReferenceDate, "week")}
-              >
-                Semana
-              </button>
-              <button
-                className={calendarViewMode === "month" ? styles.calendarModeActive : styles.secondaryButton}
-                type="button"
-                onClick={() => updateCalendarView(calendarReferenceDate, "month")}
-              >
-                Mes
-              </button>
+      {status !== "loading" && !isLoading && loadError ? (
+        <SharedState
+          eyebrow="Planejamento"
+          title="Nao foi possivel carregar seu planejamento"
+          description={loadError}
+          tone="error"
+          compact
+          actions={
+            <button
+              className={styles.secondaryButton}
+              onClick={() => void loadPageData(filters, calendarReferenceDate, calendarViewMode)}
+            >
+              Tentar novamente
+            </button>
+          }
+        />
+      ) : null}
+
+      {status !== "loading" && !isLoading && !loadError ? (
+        <section className={styles.calendarCard}>
+          <div className={styles.calendarHeader}>
+            <div>
+              <p className={styles.calendarEyebrow}>Calendario mensal</p>
+              <h2>{calendarTitle}</h2>
             </div>
 
             <div className={styles.calendarNav}>
               <button
                 className={styles.secondaryButton}
                 type="button"
-                onClick={() => {
-                  const nextDate = calendarViewMode === "week"
-                    ? addDateWeeks(calendarReferenceDate, -1)
-                    : addDateMonths(calendarReferenceDate, -1);
-                  updateCalendarView(nextDate);
-                }}
+                onClick={() => updateCalendarView(addDateMonths(calendarReferenceDate, -1))}
               >
                 Anterior
               </button>
@@ -1356,322 +1184,387 @@ export function ScheduledEntriesPage() {
               <button
                 className={styles.secondaryButton}
                 type="button"
-                onClick={() => {
-                  const nextDate = calendarViewMode === "week"
-                    ? addDateWeeks(calendarReferenceDate, 1)
-                    : addDateMonths(calendarReferenceDate, 1);
-                  updateCalendarView(nextDate);
-                }}
+                onClick={() => updateCalendarView(addDateMonths(calendarReferenceDate, 1))}
               >
                 Proximo
               </button>
             </div>
           </div>
-        </div>
 
-        <div className={styles.calendarWeekdayRow}>
-          {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((weekday) => (
-            <span key={weekday}>{weekday}</span>
-          ))}
-        </div>
-
-        <div className={`${styles.calendarGrid} ${calendarViewMode === "week" ? styles.calendarGridWeek : styles.calendarGridMonth}`}>
-          {visibleCalendarDays.map((day) => (
-            <button
-              type="button"
-              className={`${styles.calendarDay} ${day.isToday ? styles.calendarDayToday : ""} ${!day.isCurrentMonth ? styles.calendarDayMuted : ""} ${selectedCalendarDate === day.key ? styles.calendarDaySelected : ""}`}
-              key={day.key}
-              onClick={() => setSelectedCalendarDate(day.key)}
-            >
-              <div className={styles.calendarDayHeader}>
-                <strong>{day.date.getDate().toString().padStart(2, "0")}</strong>
-                <span>{day.entries.length ? `${day.entries.length} item(ns)` : "Livre"}</span>
+          <div className={styles.calendarWorkspace}>
+            <div className={styles.calendarBoard}>
+              <div className={styles.calendarWeekdayRow}>
+                {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((weekday) => (
+                  <span key={weekday}>{weekday}</span>
+                ))}
               </div>
 
-              <div className={styles.calendarDayList}>
-                {day.entries.slice(0, 3).map((entry) => (
-                  <div className={styles.calendarEntry} key={entry.occurrenceKey}>
-                    <div className={styles.calendarEntryMeta}>
-                      <span>{TYPE_LABELS[entry.type]}</span>
-                      <small className={`${styles.calendarEntryStatus} ${styles[`calendarEntryStatus${entry.status}`]}`}>
-                        {STATUS_LABELS[entry.status]}
-                      </small>
-                    </div>
-                    <strong>{entry.description ?? entry.transactionCategoryName}</strong>
-                    <small>{formatCurrency(entry.amount)}</small>
+                <div className={styles.calendarGridMonth}>
+                  {visibleCalendarDays.map((day) => (
+                    <button
+                      type="button"
+                      className={`${styles.calendarDay} ${day.isToday ? styles.calendarDayToday : ""} ${day.isPast ? styles.calendarDayPast : ""} ${!day.isCurrentMonth ? styles.calendarDayMuted : ""} ${selectedCalendarDate === day.key ? styles.calendarDaySelected : ""}`}
+                      key={day.key}
+                      onClick={() => setSelectedCalendarDate(day.key)}
+                    >
+                      <div className={styles.calendarDayHeader}>
+                        <strong>{day.date.getDate().toString().padStart(2, "0")}</strong>
+                        <span>{day.entries.length ? "" : "Livre"}</span>
+                      </div>
+
+                      <div className={styles.calendarDayCounters}>
+                        {day.entries.filter((entry) => entry.type === "income").length > 0 ? (
+                          <div className={`${styles.calendarCountChip} ${styles.calendarCountIncome} ${day.isPast ? styles.calendarCountIncomePast : ""}`}>
+                            <span>Receitas</span>
+                            <strong>{day.entries.filter((entry) => entry.type === "income").length}</strong>
+                          </div>
+                        ) : null}
+                        {day.entries.filter((entry) => entry.type === "expense").length > 0 ? (
+                          <div className={`${styles.calendarCountChip} ${styles.calendarCountExpense} ${day.isPast ? styles.calendarCountExpensePast : ""}`}>
+                            <span>Despesas</span>
+                            <strong>{day.entries.filter((entry) => entry.type === "expense").length}</strong>
+                          </div>
+                        ) : null}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            <aside className={styles.calendarSidebar}>
+              <div className={styles.calendarDrawer}>
+                <div className={styles.calendarDrawerHeader}>
+                  <div>
+                    <span className={styles.calendarEyebrow}>Previsoes do dia</span>
+                    <h3>{selectedCalendarDateLabel}</h3>
                   </div>
-                ))}
-                {day.entries.length > 3 ? (
-                  <div className={styles.calendarOverflow}>
-                    +{day.entries.length - 3} previsto(s) neste dia
+                  <div className={styles.calendarDrawerStatus}>
+                    {selectedCalendarEntries.length} item(ns)
+                  </div>
+                </div>
+
+                <div className={styles.calendarDrawerSummary}>
+                  <div className={styles.calendarDrawerMetric}>
+                    <span>Entradas</span>
+                    <strong>{formatCurrency(selectedCalendarSummary.incomeAmount)}</strong>
+                  </div>
+                  <div className={styles.calendarDrawerMetric}>
+                    <span>Saidas</span>
+                    <strong>{formatCurrency(selectedCalendarSummary.expenseAmount)}</strong>
+                  </div>
+                </div>
+
+                {selectedCalendarEntries.length > 0 ? (
+                  <>
+                    <div className={styles.calendarDrawerList}>
+                      {paginatedSelectedCalendarEntries.map((entry) => (
+                        <article
+                          className={`${styles.calendarDrawerItem} ${
+                            entry.kind === "scheduled" && entry.status === "completed"
+                              ? styles.calendarDrawerItemCompleted
+                              : ""
+                          }`}
+                          key={entry.key}
+                        >
+                          <div className={styles.calendarDrawerItemTop}>
+                            <div>
+                              <div className={styles.calendarDrawerItemTitleRow}>
+                                <h4>{entry.title}</h4>
+                                {entry.kind === "scheduled" && entry.status === "completed" ? (
+                                  <span className={styles.realizedBadge}>Realizado</span>
+                                ) : null}
+                                {entry.kind === "invoice" ? (
+                                  <span className={styles.invoiceBadge}>Fatura</span>
+                                ) : null}
+                              </div>
+                              <p>{entry.subtitle}</p>
+                            </div>
+                            <strong className={entry.type === "income" ? styles.forecastPositive : styles.forecastNegative}>
+                              {entry.type === "income" ? "+ " : "- "}
+                              {formatCurrency(entry.amount)}
+                            </strong>
+                          </div>
+                          <div className={styles.calendarDrawerActionsCompact}>
+                            {entry.kind === "invoice" ? (
+                              <>
+                                <button
+                                  className={styles.primaryGhostButton}
+                                  type="button"
+                                  onClick={() => handleOpenInvoicePayment(entry.invoice)}
+                                  disabled={isSubmitting || activeAccounts.length === 0}
+                                >
+                                  Realizar
+                                </button>
+                                <button
+                                  className={styles.secondaryButton}
+                                  type="button"
+                                  onClick={() => handleInvoiceEdit(entry.invoice.id)}
+                                  disabled={isSubmitting}
+                                >
+                                  Editar
+                                </button>
+                              </>
+                            ) : entry.status === "completed" ? (
+                              <>
+                                <button
+                                  className={styles.primaryGhostButton}
+                                  type="button"
+                                  onClick={() => void handleEntryAction(entry.entry, "undo-complete")}
+                                  disabled={actionEntryId === entry.entry.occurrenceKey}
+                                >
+                                  {actionEntryId === entry.entry.occurrenceKey ? "Salvando..." : "Desfazer"}
+                                </button>
+                                <button
+                                  className={styles.secondaryButton}
+                                  type="button"
+                                  onClick={() => openEditModal(entry.entry)}
+                                  disabled={!entry.entry.canEdit || actionEntryId === entry.entry.occurrenceKey}
+                                >
+                                  Editar
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className={styles.primaryGhostButton}
+                                  type="button"
+                                  onClick={() => void handleEntryAction(entry.entry, "complete")}
+                                  disabled={!entry.entry.canAct || actionEntryId === entry.entry.occurrenceKey}
+                                >
+                                  {actionEntryId === entry.entry.occurrenceKey ? "Salvando..." : "Realizar"}
+                                </button>
+                                <button
+                                  className={styles.secondaryButton}
+                                  type="button"
+                                  onClick={() => openEditModal(entry.entry)}
+                                  disabled={!entry.entry.canEdit || actionEntryId === entry.entry.occurrenceKey}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  className={styles.dangerButton}
+                                  type="button"
+                                  onClick={() => setScheduledEntryPendingCancel(entry.entry)}
+                                  disabled={!entry.entry.canAct || actionEntryId === entry.entry.occurrenceKey}
+                                >
+                                  Cancelar
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+
+                    {selectedCalendarEntries.length > 5 ? (
+                      <div className={styles.pagination}>
+                        <button
+                          className={styles.secondaryButton}
+                          type="button"
+                          onClick={() => setSelectedCalendarPage((current) => Math.max(1, current - 1))}
+                          disabled={selectedCalendarPage === 1}
+                        >
+                          Anterior
+                        </button>
+                        <span>
+                          Pagina {selectedCalendarPage} de {selectedCalendarTotalPages}
+                        </span>
+                        <button
+                          className={styles.secondaryButton}
+                          type="button"
+                          onClick={() => setSelectedCalendarPage((current) => Math.min(selectedCalendarTotalPages, current + 1))}
+                          disabled={selectedCalendarPage === selectedCalendarTotalPages}
+                        >
+                          Proxima
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className={styles.calendarDrawerEmpty}>
+                    Nenhuma previsao para esta data. Use o botao abaixo para criar um novo previsto neste dia.
+                  </div>
+                )}
+
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  onClick={() => openModalForDate(selectedCalendarDate)}
+                  disabled={!hasOperationalBase}
+                >
+                  Adicionar evento para esta data
+                </button>
+              </div>
+            </aside>
+          </div>
+        </section>
+      ) : null}
+
+      {scheduledEntryPendingCancel ? (
+        <div className={styles.modalOverlay} role="presentation">
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Cancelar previsto</p>
+                <h2>Confirmar cancelamento</h2>
+                <p>
+                  Ao cancelar este previsto, a acao nao podera ser desfeita. O item sumira da tela e, caso tenha sido cancelado por engano, sera necessario criar outro previsto.
+                </p>
+              </div>
+              <button className={styles.iconButton} onClick={() => setScheduledEntryPendingCancel(null)}>
+                Fechar
+              </button>
+            </div>
+
+            <div className={styles.form}>
+              <div className={styles.readonlyCard}>
+                <strong>{scheduledEntryPendingCancel.description ?? scheduledEntryPendingCancel.transactionCategoryName}</strong>
+                <small>{`${scheduledEntryPendingCancel.transactionCategoryName} | ${scheduledEntryPendingCancel.financialAccountName} | ${formatDate(scheduledEntryPendingCancel.occurrenceDate)}`}</small>
+              </div>
+
+              <div className={styles.formActions}>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => setScheduledEntryPendingCancel(null)}
+                >
+                  Voltar
+                </button>
+                <button
+                  className={styles.dangerButton}
+                  type="button"
+                  onClick={async () => {
+                    await handleEntryAction(scheduledEntryPendingCancel, "cancel");
+                    setScheduledEntryPendingCancel(null);
+                  }}
+                  disabled={actionEntryId === scheduledEntryPendingCancel.occurrenceKey}
+                >
+                  {actionEntryId === scheduledEntryPendingCancel.occurrenceKey ? "Cancelando..." : "Confirmar cancelamento"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {invoicePaymentTarget ? (
+        <div className={styles.modalOverlay} role="presentation">
+          <div className={`${styles.modalCard} ${styles.paymentModalCard}`}>
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.eyebrow}>Pagamento de fatura</p>
+                <h2>Selecionar conta para pagar</h2>
+                <p>Escolha a conta financeira que sera usada para quitar esta fatura diretamente do Planejamento.</p>
+              </div>
+              <button className={styles.iconButton} onClick={closeInvoicePaymentModal}>
+                Fechar
+              </button>
+            </div>
+
+            <div className={styles.form}>
+              <div className={styles.paymentHero}>
+                <div className={`${styles.readonlyCard} ${styles.paymentHeroCard}`}>
+                  <span className={styles.paymentCardLabel}>Cartao</span>
+                  <strong>{invoicePaymentTarget.creditCardName}</strong>
+                  <small>{`Fatura ${formatReferenceMonth(invoicePaymentTarget.referenceYear, invoicePaymentTarget.referenceMonth)}`}</small>
+                </div>
+                <div className={`${styles.readonlyCard} ${styles.paymentHeroCard}`}>
+                  <span className={styles.paymentCardLabel}>Vencimento</span>
+                  <strong>{formatDate(invoicePaymentTarget.dueDate)}</strong>
+                  <small>Pagamento tratado no modulo de Faturas.</small>
+                </div>
+                <div className={`${styles.readonlyCard} ${styles.paymentHeroCard} ${styles.paymentHeroAccent}`}>
+                  <span className={styles.paymentCardLabel}>Valor a pagar</span>
+                  <strong>{formatCurrency(invoicePaymentTarget.remainingAmount)}</strong>
+                  <small>Saldo remanescente que sera baixado ao confirmar.</small>
+                </div>
+              </div>
+
+              <div className={styles.paymentAccountSection}>
+                <div className={styles.paymentSectionHeader}>
+                  <div>
+                    <span className={styles.paymentSectionEyebrow}>Conta de pagamento</span>
+                    <h3>Escolha de onde a saida sera registrada</h3>
+                  </div>
+                  {selectedInvoicePaymentAccount ? (
+                    <div className={styles.paymentSelectedPill}>
+                      {selectedInvoicePaymentAccount.name}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className={styles.paymentAccountGrid}>
+                  {activeAccounts.map((account) => (
+                    <button
+                      key={account.id}
+                      className={`${styles.paymentAccountCard} ${
+                        invoicePaymentAccountId === account.id ? styles.paymentAccountCardActive : ""
+                      }`}
+                      type="button"
+                      onClick={() => setInvoicePaymentAccountId(account.id)}
+                    >
+                      <div className={styles.paymentAccountCardTop}>
+                        <div>
+                          <strong>{account.name}</strong>
+                          <small>{account.institutionName || FINANCIAL_ACCOUNT_TYPE_LABELS[account.type]}</small>
+                        </div>
+                        <span className={styles.paymentAccountBadge}>
+                          {invoicePaymentAccountId === account.id ? "Selecionada" : "Conta"}
+                        </span>
+                      </div>
+                      <div className={styles.paymentAccountMeta}>
+                        <span>{FINANCIAL_ACCOUNT_TYPE_LABELS[account.type]}</span>
+                        <strong>{formatCurrency(account.currentBalanceSnapshot ?? account.initialBalance)}</strong>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {activeAccounts.length === 0 ? (
+                  <div className={styles.calendarDrawerEmpty}>
+                    Nenhuma conta ativa disponivel para registrar o pagamento desta fatura.
                   </div>
                 ) : null}
               </div>
-            </button>
-          ))}
+
+              <div className={styles.paymentSummaryPanel}>
+                <div className={styles.paymentSummaryRow}>
+                  <span>Origem</span>
+                  <strong>{invoicePaymentTarget.creditCardName}</strong>
+                </div>
+                <div className={styles.paymentSummaryRow}>
+                  <span>Conta escolhida</span>
+                  <strong>{selectedInvoicePaymentAccount?.name ?? "Selecione uma conta"}</strong>
+                </div>
+                <div className={styles.paymentSummaryRow}>
+                  <span>Valor da baixa</span>
+                  <strong>{formatCurrency(invoicePaymentTarget.remainingAmount)}</strong>
+                </div>
+              </div>
+
+              {submitError ? <div className={styles.feedbackError}>{submitError}</div> : null}
+
+              <div className={styles.formActions}>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={closeInvoicePaymentModal}
+                >
+                  Voltar
+                </button>
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  onClick={() => void handleConfirmInvoicePayment()}
+                  disabled={isSubmitting || !invoicePaymentAccountId}
+                >
+                  {isSubmitting ? "Pagando..." : "Confirmar pagamento"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <aside className={styles.calendarDrawer}>
-          <div className={styles.calendarDrawerHeader}>
-            <div>
-              <span className={styles.calendarEyebrow}>Dia selecionado</span>
-              <h3>{selectedCalendarDateLabel}</h3>
-              <p>
-                {selectedCalendarEntries.length
-                  ? "Veja os previstos do dia e aja sem sair do calendario."
-                  : "Nenhum previsto neste dia. Use o atalho para criar um novo compromisso com a data predefinida."}
-              </p>
-            </div>
-            <button
-              className={styles.primaryButton}
-              type="button"
-              onClick={() => openModalForDate(selectedCalendarDate)}
-              disabled={!hasOperationalBase}
-            >
-              Novo neste dia
-            </button>
-          </div>
-
-          <div className={styles.calendarDrawerSummary}>
-            <div className={styles.calendarDrawerMetric}>
-              <span>Total previsto</span>
-              <strong>{formatCurrency(selectedCalendarSummary.totalAmount)}</strong>
-            </div>
-            <div className={styles.calendarDrawerMetric}>
-              <span>Receitas</span>
-              <strong>{formatCurrency(selectedCalendarSummary.incomeAmount)}</strong>
-            </div>
-            <div className={styles.calendarDrawerMetric}>
-              <span>Despesas</span>
-              <strong>{formatCurrency(selectedCalendarSummary.expenseAmount)}</strong>
-            </div>
-          </div>
-
-          {selectedCalendarEntries.length > 0 ? (
-            <div className={styles.calendarDrawerList}>
-              {selectedCalendarEntries.map((entry) => (
-                <article className={styles.calendarDrawerItem} key={entry.occurrenceKey}>
-                  <div className={styles.calendarDrawerItemTop}>
-                    <div>
-                      <h4>{entry.description ?? entry.transactionCategoryName}</h4>
-                      <p>{entry.financialAccountName} | {entry.transactionCategoryName}</p>
-                    </div>
-                    <strong>{formatCurrency(entry.amount)}</strong>
-                  </div>
-                  <div className={styles.calendarDrawerItemMeta}>
-                    <span>{TYPE_LABELS[entry.type]}</span>
-                    <span>{MODE_LABELS[entry.planningMode]}{entry.recurrenceFrequency ? ` | ${FREQUENCY_LABELS[entry.recurrenceFrequency]}` : ""}</span>
-                    <span className={`${styles.calendarEntryStatus} ${styles[`calendarEntryStatus${entry.status}`]}`}>
-                      {STATUS_LABELS[entry.status]}
-                    </span>
-                  </div>
-                  <div className={styles.calendarDrawerActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => openEditModal(entry)}
-                      disabled={!entry.canEdit || actionEntryId === entry.occurrenceKey}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => void handleEntryAction(entry, "complete")}
-                      disabled={!entry.canAct || actionEntryId === entry.occurrenceKey}
-                    >
-                      {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Realizar"}
-                    </button>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => void handleEntryAction(entry, "skip")}
-                      disabled={!entry.canAct || actionEntryId === entry.occurrenceKey}
-                    >
-                      {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Ignorar"}
-                    </button>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => void handleEntryAction(entry, "cancel")}
-                      disabled={!entry.canAct || actionEntryId === entry.occurrenceKey}
-                    >
-                      {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Cancelar"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.calendarDrawerEmpty}>
-              Este dia esta livre dentro dos filtros atuais.
-            </div>
-          )}
-        </aside>
-      </section>
-
-      <section className={styles.listCard}>
-        <div className={styles.listHeader}>
-          <div>
-            <h2>Seus previstos</h2>
-            <p>
-              Veja o que esta por vir, trate cada compromisso e mantenha o
-              planejamento do futuro imediato explicavel.
-            </p>
-          </div>
-          <button
-            className={styles.secondaryButton}
-            onClick={() => void loadPageData(filters)}
-          >
-            Recarregar lista
-          </button>
-        </div>
-
-        {status === "loading" || isLoading ? <SharedSkeletonRows rows={3} /> : null}
-
-        {status !== "loading" && !isLoading && loadError ? (
-          <SharedState
-            eyebrow="Planejamento"
-            title="Nao foi possivel carregar seu planejamento"
-            description={loadError}
-            tone="error"
-            compact
-            actions={
-              <button
-                className={styles.secondaryButton}
-                onClick={() => void loadPageData(filters)}
-              >
-                Tentar novamente
-              </button>
-            }
-          />
-        ) : null}
-
-        {status !== "loading" && !isLoading && !loadError && filteredEntries.length === 0 ? (
-          <SharedState
-            eyebrow="Planejamento"
-            title="Nenhum previsto encontrado"
-            description="Crie seu primeiro lancamento planejado para abrir a camada de planejamento da Fase 4 com controle simples e auditavel."
-            tone="empty"
-            compact
-            actions={
-              <button
-                className={styles.primaryButton}
-                onClick={openModal}
-                disabled={!hasOperationalBase}
-              >
-                Novo previsto
-              </button>
-            }
-          />
-        ) : null}
-
-        {status !== "loading" && !isLoading && !loadError && filteredEntries.length > 0 ? (
-          <div className={styles.entryList}>
-            {filteredEntries.map((entry) => {
-              const untilNext = daysUntil(entry.occurrenceDate);
-              const canAct = entry.canAct && isScheduledStatus(entry.status);
-
-              return (
-                <article className={styles.entryCard} key={entry.occurrenceKey}>
-                  <div className={styles.entryTopRow}>
-                    <div>
-                      <h3>{entry.description ?? entry.transactionCategoryName}</h3>
-                      <p>
-                        {entry.financialAccountName} | {entry.transactionCategoryName}
-                      </p>
-                      <span className={styles.mutedText}>
-                        {TYPE_LABELS[entry.type]} | {MODE_LABELS[entry.planningMode]}
-                        {entry.recurrenceFrequency
-                          ? ` | ${FREQUENCY_LABELS[entry.recurrenceFrequency]}`
-                          : ""}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`${styles.statusBadge} ${styles[`statusBadge${entry.status}`]}`}
-                    >
-                      {STATUS_LABELS[entry.status]}
-                    </span>
-                  </div>
-
-                  <div className={styles.entryMetaRow}>
-                    <div>
-                      <span>Valor previsto</span>
-                      <strong>{formatCurrency(entry.amount)}</strong>
-                    </div>
-                    <div>
-                      <span>Inicio</span>
-                      <strong>{formatDate(entry.startDate)}</strong>
-                    </div>
-                    <div>
-                      <span>Competencia</span>
-                      <strong>{formatDate(entry.occurrenceDate)}</strong>
-                    </div>
-                    <div>
-                      <span>Janela operacional</span>
-                      <strong>
-                        {!isScheduledStatus(entry.status)
-                          ? "Tratado"
-                          : untilNext === null
-                          ? "Sem ocorrencia ativa"
-                          : untilNext < 0
-                            ? `${Math.abs(untilNext)} dia(s) em atraso`
-                            : untilNext === 0
-                              ? "Hoje"
-                              : `${untilNext} dia(s)`}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className={styles.entryFooter}>
-                    <div className={styles.entryHistory}>
-                      <span>Tratado em</span>
-                      <strong>{formatDateTime(entry.treatedAtUtc)}</strong>
-                      <small>
-                        {entry.endDate
-                          ? `Recorrencia vai ate ${formatDate(entry.endDate)}`
-                          : "Sem data final definida"}
-                      </small>
-                    </div>
-
-                    <div className={styles.actionBar}>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => openEditModal(entry)}
-                        disabled={!entry.canEdit || actionEntryId === entry.occurrenceKey}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => void handleEntryAction(entry, "complete")}
-                        disabled={!canAct || actionEntryId === entry.occurrenceKey}
-                      >
-                        {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Marcar como realizado"}
-                      </button>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => void handleEntryAction(entry, "skip")}
-                        disabled={!canAct || actionEntryId === entry.occurrenceKey}
-                      >
-                        {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Ignorar"}
-                      </button>
-                      <button
-                        className={styles.secondaryButton}
-                        onClick={() => void handleEntryAction(entry, "cancel")}
-                        disabled={!canAct || actionEntryId === entry.occurrenceKey}
-                      >
-                        {actionEntryId === entry.occurrenceKey ? "Salvando..." : "Cancelar"}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : null}
-      </section>
+      ) : null}
 
       {isModalOpen ? (
         <div className={styles.modalOverlay} role="presentation">

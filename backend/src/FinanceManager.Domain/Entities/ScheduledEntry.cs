@@ -92,6 +92,32 @@ public sealed class ScheduledEntry
         UpdatedAtUtc = nowUtc;
     }
 
+    public void UndoCompletion(DateOnly occurrenceDate, DateTime nowUtc)
+    {
+        if (occurrenceDate == default)
+        {
+            throw new InvalidOperationException("A competencia informada para desfazer o realizado e obrigatoria.");
+        }
+
+        if (PlanningMode == ScheduledEntryPlanningMode.OneTime)
+        {
+            Status = ScheduledEntryStatus.Scheduled;
+            NextOccurrenceDate = occurrenceDate;
+            LastRealizedAtUtc = null;
+            UpdatedAtUtc = nowUtc;
+            return;
+        }
+
+        if (!NextOccurrenceDate.HasValue || NextOccurrenceDate.Value > occurrenceDate)
+        {
+            NextOccurrenceDate = occurrenceDate;
+        }
+
+        Status = ScheduledEntryStatus.Scheduled;
+        LastRealizedAtUtc = null;
+        UpdatedAtUtc = nowUtc;
+    }
+
     public void Update(
         Guid financialAccountId,
         Guid transactionCategoryId,
